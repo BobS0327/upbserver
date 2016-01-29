@@ -1,7 +1,6 @@
 package databaseMethods;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -9,7 +8,6 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.sql.PreparedStatement;
 
 public class updateDatabase
 {
@@ -228,7 +226,38 @@ public class updateDatabase
 			System.exit(0);
 		}
 	}
+	public static void loadDeviceIDArray( String dbName, int[]  dArray)
+	{
+		int index = 0;
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
+			stmt = c.createStatement();
 
+			String sel = "SELECT * FROM devices;";
+			String sel1;
+			int manf, prod;
+			ResultSet rs = stmt.executeQuery(sel);
+			
+
+			while (rs.next()) {
+			dArray[index++] = rs.getInt("moduleid");
+			
+			//	prod = rs.getInt("prodid");
+			
+			}
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch ( Exception e ) {
+			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+			System.exit(0);
+		}
+	}
 
 }
 

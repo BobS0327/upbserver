@@ -56,11 +56,20 @@ public class buildCmd {
 		// Allocate the message and fill in the header
 		int theMessageSize = 6;  // Basic message is at least 6 bytes long
 		int theMessage[] = null;
+		if(mv.action == 0x30)
+		{
+			theMessageSize = 6;
+		}
+		else
 		if(mv.action == 0x23)
 		{
 		theMessageSize +=2;
 		}
-		else
+		else if (mv.action == 0x07 )  // GetStatus
+		{
+			theMessageSize = 6;
+		}
+		else	
 		{
 			theMessageSize = 6;	
 		}
@@ -69,10 +78,19 @@ public class buildCmd {
 		
 
 		switch(mv.action) {
+		case 0x30:	// Report State Command	
+		case 0x07:   // Get Status
+			  theMessage[UPBMSG_CONTROL_HIGH] = 0x00 | (theMessageSize + 1);
+		      theMessage[UPBMSG_CONTROL_LOW] =  0x14; //0x14;
+		  	theMessage[UPBMSG_MESSAGE_ID] = mv.action;
+		      theMessage[UPBMSG_NETWORK_ID] = mv.networkid;
+		      theMessage[UPBMSG_DEST_ID] = mv.moduleid;
+		      theMessage[UPBMSG_SOURCE_ID] = mv.sourceid;
+			break;
 		case 0x20:    // Activate a link
 			
 		      theMessage[UPBMSG_CONTROL_HIGH] = 0x80 | (theMessageSize + 1);
-		      theMessage[UPBMSG_CONTROL_LOW] =  0x00; //0x14;
+		      theMessage[UPBMSG_CONTROL_LOW] =  0x14; //0x14;
 		  	theMessage[UPBMSG_MESSAGE_ID] = mv.action;
 		      theMessage[UPBMSG_NETWORK_ID] = mv.networkid;
 		      theMessage[UPBMSG_DEST_ID] = mv.moduleid;

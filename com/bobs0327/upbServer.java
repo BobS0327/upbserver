@@ -17,13 +17,15 @@ public class upbServer extends Thread
 	static boolean bAlreadyUpdated = false;
 	static StringBuilder sb = new StringBuilder();
 	ArrayList<String> obj = new ArrayList<String>();
-
+	public static int[] deviceIDArray = new int[250];
 	final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 	static String configfile;
 	static String  portIn;
 	static String comm = "COM4";
 	static int port = 3306;
 	static String sourceID;
+	static String delayTemp;
+	static int cmdDelay;
 	static String expfilename, dbName;
 
 	static 	SerialPort serialPort; 	
@@ -33,6 +35,8 @@ public class upbServer extends Thread
 	{
 		System.out.println("Initializing application");
 		initializeApplication();
+
+
 		try {
 			serialPort = new SerialPort(comm); 
 			_portNumber = port; //Arbitrary port number
@@ -44,6 +48,32 @@ public class upbServer extends Thread
 		} catch (Exception e) {
 			System.out.println("I/O failure: " + e.getMessage());
 			e.printStackTrace();
+		}
+
+		updateDatabase.loadDeviceIDArray( dbName, deviceIDArray);	
+
+		moduleVariables mvInput = new moduleVariables();
+		buildCmd bc = new buildCmd();
+		System.out.println("Updating database..");
+		for(int index = 0; index <= deviceIDArray.length; index++)
+		{
+			if(deviceIDArray[index] == 0)
+				break;
+			mvInput.clear();
+			mvInput.moduleid = deviceIDArray[index];
+			mvInput.sourceid = 255;
+			mvInput.networkid = 1;
+			mvInput.isDevice = true;
+			mvInput.action = 0x30;  // report State Command
+
+			bc.buildCmd(mvInput);
+			String 	myCmd = mvInput.message.toString();
+			sendCmd(myCmd);
+			try {
+				Thread.sleep(cmdDelay*1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		System.out.println("Application now running");
 	}
@@ -64,6 +94,8 @@ public class upbServer extends Thread
 			dbName = properties.getProperty("dbname");
 			port  =  Integer.parseInt(portIn); 
 			sourceID = properties.getProperty("sourceid");
+			delayTemp = properties.getProperty("delaybetweencommands");
+			cmdDelay = Integer.parseInt(delayTemp); 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -368,12 +400,9 @@ public class upbServer extends Thread
 		case 0x24:  // Fade Stop Command
 			System.out.println("Fade Stop Command");
 			break;
-	
-		case 0x86:  // Device state report
-			if(linkPacket == true)
-			{
-				updateDatabase.updateStatusTable("upbserver.db" , sourceID ,level);	
-			}
+
+		case 0x86:  // Device state report, updated device status
+			updateDatabase.updateStatusTable("upbserver.db" , sourceID ,level);	
 			break;
 
 		default:
@@ -382,4 +411,24 @@ public class upbServer extends Thread
 		System.out.println(System.lineSeparator());
 		return;
 	}
+	public static void sendCmd(String inCmd)
+	{
+		byte[] cr = {0x0D};
+		byte[] ctlt =  {0x14} ;
+		byte[] ctlw = {0x17};
+		String messagemode = "70028E";
+		byte[] msgmode = messagemode.getBytes();
+		byte[] bytebuffer = inCmd.getBytes();
+		try {
+			serialPort.writeBytes(ctlw);
+			serialPort.writeBytes(msgmode);
+			serialPort.writeBytes(cr);
+			serialPort.writeBytes(ctlt);
+			serialPort.writeBytes(bytebuffer);
+			serialPort.writeBytes(cr);
+		} catch (SerialPortException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}	
 }

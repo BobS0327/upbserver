@@ -15,7 +15,6 @@ public class addUPERecords2DB {
 
 	public static void addUPERecords(String inputDBName, String inputExpFileName )
 	{
-
 		boolean bDatabaseJustCreated = false;
 		Path path = Paths.get(inputDBName);
 
@@ -86,6 +85,7 @@ public class addUPERecords2DB {
 
 	static void parseDevice(String inputDBName) {
 		int bx = 0;
+		int index = 0;
 		boolean xmitsLinks = (parsedTokenList.size() >= 14) ? getIntToken(13) != 0 : false;
 		if(xmitsLinks == true)
 			bx =1;
