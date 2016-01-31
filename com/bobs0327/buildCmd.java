@@ -69,10 +69,15 @@ public class buildCmd {
 		{
 			theMessageSize = 6;
 		}
-		else	
+		else if(mv.action == 0x22)	// Goto
 		{
-			theMessageSize = 6;	
+			theMessageSize  +=2;	
 		}
+		else
+		{
+			theMessageSize = 6;
+		}
+		
 		
 		theMessage = new int[theMessageSize];
 		
@@ -97,9 +102,10 @@ public class buildCmd {
 		      theMessage[UPBMSG_SOURCE_ID] = mv.sourceid;
 			break;
 		
+		case 0x22: //Goto
 		case 0x23:  //Turn Dimming wall switch ON/OFF
 			theMessage[UPBMSG_CONTROL_HIGH] = theMessageSize + 1;
-			theMessage[UPBMSG_CONTROL_LOW] =  0x44;   // 0x14;
+			theMessage[UPBMSG_CONTROL_LOW] =  0x14;   
 			theMessage[UPBMSG_NETWORK_ID] = mv.networkid;
 			theMessage[UPBMSG_DEST_ID] = mv.moduleid;
 			theMessage[UPBMSG_SOURCE_ID] = mv.sourceid;;

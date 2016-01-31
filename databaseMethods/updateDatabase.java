@@ -8,6 +8,10 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import com.bobs0327.upbServer;
 
 public class updateDatabase
 {
@@ -102,8 +106,9 @@ public class updateDatabase
 			System.exit(0);
 		}
 	} 
-	public static void findDeviceRecord( String dbName, int  moduleID)
+	public static String findDeviceRecord( String dbName, int  moduleID)
 	{
+		 JSONObject updateObj = new JSONObject();
 		Connection c = null;
 		Statement stmt = null;
 		try {
@@ -112,9 +117,9 @@ public class updateDatabase
 			c = DriverManager.getConnection(conn);
 			c.setAutoCommit(false);
 			stmt = c.createStatement();
-
 			String sel = "SELECT * FROM devices WHERE moduleid = " + moduleID + ";";
 			String sel1;
+			String sel2 = "SELECT * FROM devicestatus WHERE moduleid = " + moduleID + ";";
 			int manf, prod;
 			ResultSet rs = stmt.executeQuery(sel);
 			boolean devrecfound = false;
@@ -122,6 +127,10 @@ public class updateDatabase
 
 			while (rs.next()) {
 				devrecfound = true;
+				  updateObj.put("ModuleID", new Integer(moduleID));
+				updateObj.put("Room",rs.getString("roomname") );
+				  updateObj.put("Device",rs.getString("devname"));
+			
 				System.out.println("Room Name = " + rs.getString("roomname"));
 				System.out.println("Device Name = " + rs.getString("devname"));
 				manf = rs.getInt("manufacturer");
@@ -133,6 +142,9 @@ public class updateDatabase
 
 				while (rs1.next()) {
 					prodrecfound = true;
+					  updateObj.put("Description",rs1.getString("proddesc"));
+					  updateObj.put("Kind",rs1.getString("kind"));
+					  
 					System.out.println("Product Desc = " + rs1.getString("proddesc"));
 					System.out.println("Kind = " + rs1.getString("kind"));
 				}
@@ -140,13 +152,27 @@ public class updateDatabase
 			}
 			rs.close();
 			stmt.close();
-			//  c.commit();
-			rs.close();
+
+	ResultSet rs2 = stmt.executeQuery(sel2);
+			while (rs2.next()) {
+				prodrecfound = true;
+				  updateObj.put("TimeStamp",rs2.getString("upddatetime"));
+				  updateObj.put("Status", new Integer( rs2.getInt(3)));
+				  updateObj.put("Level", new Integer( rs2.getInt(4)));
+				  
+				System.out.println("TimeStamp = " + rs2.getString("upddatetime"));
+			//	System.out.println("Kind = " + rs2.getString("kind"));
+			}
+			rs2.close(); 
+			
+			
 			c.close();
 		} catch ( Exception e ) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
 		}
+		  final String responseBody = updateObj.toJSONString();
+		return responseBody;
 	}
 
 	public static void updateStatusTable( String dbName, int  moduleID,  int level )
@@ -154,7 +180,8 @@ public class updateDatabase
 		Connection c = null;
 		Statement stmt = null;
 		int status;
-		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+	//	String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+		String timeStamp = upbServer.getDateandTime();
 		try {
 			Class.forName("org.sqlite.JDBC");
 			String conn = "jdbc:sqlite:" + dbName;
@@ -169,8 +196,8 @@ public class updateDatabase
 			while (rs.next()) {
 				devrecfound = true;
 			}
-			DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-			Calendar cal = Calendar.getInstance();
+		//	DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		//	Calendar cal = Calendar.getInstance();
 
 			if(devrecfound == false)
 			{	

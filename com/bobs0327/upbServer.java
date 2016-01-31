@@ -1,15 +1,20 @@
 package com.bobs0327;
 
+
 import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
 import jssc.SerialPortException;
-import java.net.*;
+import upbHttpServerMethods.HttpRequestHandler;
+import upbHttpServerMethods.UPBHttpServer;
+import java.sql.Date;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Properties;
 import databaseMethods.addUPERecords2DB;
 import databaseMethods.updateDatabase;
 import java.io.*;
+
 
 public class upbServer extends Thread
 {
@@ -23,10 +28,13 @@ public class upbServer extends Thread
 	static String  portIn;
 	static String comm = "COM4";
 	static int port = 3306;
-	static String sourceID;
+	static public String sourceID;
 	static String delayTemp;
-	static int cmdDelay;
-	static String expfilename, dbName;
+	public static int cmdDelay;
+	static String expfilename;
+	public static String dbName;
+	static String httpContext;
+	static public String networkID;
 
 	static 	SerialPort serialPort; 	
 	static int _portNumber; // = 3306; //Arbitrary port number
@@ -61,13 +69,16 @@ public class upbServer extends Thread
 				break;
 			mvInput.clear();
 			mvInput.moduleid = deviceIDArray[index];
-			mvInput.sourceid = 255;
-			mvInput.networkid = 1;
+			mvInput.sourceid = Integer.parseInt(sourceID);
+			mvInput.networkid = Integer.parseInt(networkID);;
 			mvInput.isDevice = true;
 			mvInput.action = 0x30;  // report State Command
 
 			bc.buildCmd(mvInput);
 			String 	myCmd = mvInput.message.toString();
+			String dateStr = getDateandTime();
+			
+			System.out.println(dateStr + " Sent: "+ myCmd);
 			sendCmd(myCmd);
 			try {
 				Thread.sleep(cmdDelay*1000);
@@ -75,6 +86,12 @@ public class upbServer extends Thread
 				e.printStackTrace();
 			}
 		}
+		upbHttpServerMethods.UPBHttpServer upbHttpServer = new UPBHttpServer(port, httpContext,
+				new HttpRequestHandler());
+
+		// Start the server
+		upbHttpServer.start();
+		
 		System.out.println("Application now running");
 	}
 
@@ -96,6 +113,8 @@ public class upbServer extends Thread
 			sourceID = properties.getProperty("sourceid");
 			delayTemp = properties.getProperty("delaybetweencommands");
 			cmdDelay = Integer.parseInt(delayTemp); 
+			httpContext = properties.getProperty("httpcontext");
+			networkID = properties.getProperty("networkid");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -105,81 +124,7 @@ public class upbServer extends Thread
 		}
 		addUPERecords2DB.addUPERecords(dbName, expfilename);	
 	}
-	public void startServer() throws Exception {
-		ServerSocket serverSocket = null;
-		boolean listening = true;
-
-		try {
-			serverSocket = new ServerSocket(_portNumber);
-		} catch (IOException e) {
-			System.err.println("Could not listen on port: " + _portNumber);
-			System.exit(-1);
-		}
-		while (listening) {
-			handleClientRequest(serverSocket);
-		}
-		serverSocket.close();
-	}
-
-	private void handleClientRequest(ServerSocket serverSocket) {
-		try {
-			new ConnectionRequestHandler(serverSocket.accept()).run();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Handles client connection requests. 
-	 */
-	public class ConnectionRequestHandler implements Runnable{
-		private Socket _socket = null;
-		private PrintWriter _out = null;
-		private BufferedReader _in = null;
-
-		public ConnectionRequestHandler(Socket socket) {
-			_socket = socket;
-		}
-
-		public void run() {
-			System.out.println("Client connected to socket: " + _socket.toString());
-
-			try {
-				_out = new PrintWriter(_socket.getOutputStream(), true);
-				_in = new BufferedReader(new InputStreamReader(_socket.getInputStream()));
-
-				String inputLine, outputLine;
-				upbCommandProcessor upbCommandProcessor = new upbCommandProcessor();
-				outputLine = upbCommandProcessor.processInput(null);
-				_out.println(outputLine);
-
-				//Read from socket and write back the response to client. 
-				while ((inputLine = _in.readLine()) != null) {
-					outputLine = upbCommandProcessor.processInput(inputLine);
-					if(outputLine != null) {
-						_out.println(outputLine);
-						if (outputLine.equals("exit")) {
-							System.out.println("Server is closing socket for client:" + _socket.getLocalSocketAddress());
-							break;
-						}
-					} else {
-						System.out.println("OutputLine is null!!!");
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally { //In case anything goes wrong we need to close our I/O streams and sockets.
-				try {
-					_out.close();
-					_in.close();
-					_socket.close();
-				} catch(Exception e) { 
-					System.out.println("Couldn't close I/O streams");
-				}
-			}
-		}
-	}
-
+	
 	public static class upbCommandProcessor {
 		private static final int Initialize = 0;
 		private static final int GetCommand = 1;
@@ -230,6 +175,7 @@ public class upbServer extends Thread
 					System.out.print(readed);
 					if(buffer[0] == 0x0D)
 					{
+						System.out.println(sb.toString());
 						processData(sb);
 						sb.setLength(0);
 					}
@@ -279,6 +225,10 @@ public class upbServer extends Thread
 	public static synchronized void processData(StringBuilder theMessage)
 	{
 		if (theMessage.toString().startsWith("PU")) {
+			 
+			String dateStr = getDateandTime();
+		
+			System.out.println(dateStr + " Received: " + theMessage.toString());
 			int messageLen = theMessage.length();
 			int messageBody[] = new int[(messageLen / 2) - 2];
 			int checkSum = 0;
@@ -301,7 +251,7 @@ public class upbServer extends Thread
 				checkSum = (-checkSum & 0xff);
 				if (checkSum != theValue) {
 					System.err.println(System.lineSeparator() + "Check sum on received UPB packet failed -- should be " + checkSum + " but received as " + theValue);
-					System.err.println("   BAD MESSAGE[" + theMessage + "], " + theMessage.length() + " bytes");
+					System.err.println(System.lineSeparator() +"   BAD MESSAGE[" + theMessage + "], " + theMessage.length() + " bytes");
 					return;
 				}
 			}
@@ -372,7 +322,7 @@ public class upbServer extends Thread
 			if (theMessage.length > UPBMSG_BODY)
 			{
 				parsedLevel = theMessage[UPBMSG_BODY];
-				System.out.format("Level is " + "is %d"+ newline ,parsedLevel); 
+		 
 			}
 			if (theMessage.length > UPBMSG_BODY + 1)
 			{
@@ -381,29 +331,33 @@ public class upbServer extends Thread
 			}
 			updateDatabase.updateStatusTable("upbserver.db" , destID ,parsedLevel);
 			break;
-
+		case 0x86:	
 		case 0x23: // Fade Start Command
-			System.out.println("Fade Start Command");
+		//	System.out.println("Fade Start Command");
 			if (theMessage.length > UPBMSG_BODY)
 			{
 				parsedLevel = theMessage[UPBMSG_BODY];
-				System.out.format("Level is " + "is %d"+ newline ,parsedLevel); 
 			}
 			if (theMessage.length > UPBMSG_BODY + 1)
 			{
 				parsedFadeRate = theMessage[UPBMSG_BODY + 1];
 				System.out.format("Fade Rate is " + "is %d"+ newline ,parsedFadeRate); 
 			}
+			if(messageID == 0x23)
+			{
 			updateDatabase.updateStatusTable("upbserver.db" , destID ,parsedLevel);
+			}
+			else if(messageID == 0x86)
+			{
+				updateDatabase.updateStatusTable("upbserver.db" , sourceID ,parsedLevel);	
+			}
 			break;
 
 		case 0x24:  // Fade Stop Command
 			System.out.println("Fade Stop Command");
 			break;
-
-		case 0x86:  // Device state report, updated device status
-			updateDatabase.updateStatusTable("upbserver.db" , sourceID ,level);	
-			break;
+			
+		
 
 		default:
 			break;
@@ -430,5 +384,13 @@ public class upbServer extends Thread
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}	
+	}
+	public static String getDateandTime()
+	{
+		 long currentDateTime = System.currentTimeMillis();
+		 Date now = new Date(currentDateTime);
+		  DateFormat formatter = DateFormat.getDateTimeInstance(); // Date and time
+	     return ( formatter.format(now));
+		
+	}
 }
