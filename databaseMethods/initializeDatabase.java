@@ -19,7 +19,9 @@ public class initializeDatabase {
 	        String sMakeTable1  = "CREATE TABLE links (linkidnum numeric, linkname text)";
 	        String sMakeTable2 = "CREATE TABLE header (fileversion numeric, numupbdevices numeric, numdefinedlinks numeric, networkid numeric, networkpassword numeric)";
 	        String sMakeTable3 = "CREATE TABLE products (manufacturer numeric, prodid numeric, proddesc text, kind text)";
-	        String sMakeTable4 = "CREATE TABLE devicestatus (moduleid numeric, upddatetime text, status numeric, level numeric)";
+	        String sMakeTable4 = "CREATE TABLE devicestatus (moduleid numeric, upddatetime text, status numeric, level numeric, faderate numeric, info text)";
+	        String sMakeTable5 = "CREATE TABLE presets (moduleid numeric, linkid numeric, channel numeric, presetdim numeric, presetfade numeric)";
+	        
 	        // create a database connection
 	        Connection conn = DriverManager.getConnection(sDbUrl);
 	        try {
@@ -31,6 +33,7 @@ public class initializeDatabase {
 	                stmt.executeUpdate( sMakeTable2 );
 	                stmt.executeUpdate( sMakeTable3 );
 	                stmt.executeUpdate( sMakeTable4 );
+	                stmt.executeUpdate( sMakeTable5 );
 	            } finally {
 	                try { stmt.close(); } catch (Exception ignore) {  }
 	            }

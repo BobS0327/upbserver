@@ -24,7 +24,6 @@ public class updateDatabase
 			String conn = "jdbc:sqlite:" + dbName;
 			c = DriverManager.getConnection(conn);
 			c.setAutoCommit(false);
-			System.out.println("Opened database successfully");
 			stmt = c.createStatement();
 			String values =	  "VALUES (" + moduleid + "," + manufacturer + "," + prodid + "," + fw + "," + channels + "," + numtransmit + "," + numrece + "," + "'" + room + "', '" + devname + "', " + packet + ");";
 			String sql = "INSERT INTO devices (moduleid, manufacturer, prodid, fw, channels,  numtransmitcomp, numrececomp, roomname, devname,packettype) " + values;
@@ -38,7 +37,7 @@ public class updateDatabase
 		}
 		System.out.println("Device record inserted successfully");
 	}
-
+	
 	public static void insertHeaderRecord( String dbName, int importVersion, int expectedDeviceCount, int expectedLinkCount, int importNetworkID, int networkPassword )
 	{
 		Connection c = null;
@@ -48,7 +47,6 @@ public class updateDatabase
 			String conn = "jdbc:sqlite:" + dbName;
 			c = DriverManager.getConnection(conn);
 			c.setAutoCommit(false);
-			System.out.println("Opened database successfully");
 			stmt = c.createStatement();
 			String values =	  "VALUES (" + importVersion + "," + expectedDeviceCount + "," + expectedLinkCount + "," + importNetworkID + "," + networkPassword + ");";
 			String sql = "INSERT INTO header (fileversion, numupbdevices, numdefinedlinks, networkid, networkpassword) " + values;
@@ -63,9 +61,8 @@ public class updateDatabase
 		System.out.println("Header record inserted successfully");
 	}
 
-	public static void insertLinkRecord( String dbName, int linkid, String linkname)
+	public static void insertPresetRecord( String dbName, int moduleID, int linkID, int channel, int presetDim, int presetFadeRate )
 	{
-
 		Connection c = null;
 		Statement stmt = null;
 		try {
@@ -73,7 +70,55 @@ public class updateDatabase
 			String conn = "jdbc:sqlite:" + dbName;
 			c = DriverManager.getConnection(conn);
 			c.setAutoCommit(false);
-			System.out.println("Opened database successfully");
+			stmt = c.createStatement();
+			String values =	  "VALUES (" + moduleID + "," + linkID + "," + channel + "," + presetDim + "," + presetFadeRate + ");";
+			String sql = "INSERT INTO presets (moduleid, linkid, channel, presetdim, presetfade) " + values;
+			stmt.executeUpdate(sql);
+			stmt.close();
+			c.commit();
+			c.close();
+		} catch ( Exception e ) {
+			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+			System.exit(0);
+		}
+		System.out.println("Preset record inserted successfully");
+	}
+	
+	public static void insertProductsRecord( String dbName, int manuf, int prod, String desc, String kind )
+	{
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
+			stmt = c.createStatement();
+			String values =	  "VALUES (" + manuf + "," + prod + "," + "'" + desc + "'" + "," + "'"  +kind + "'" + ");";
+			String sql = "INSERT INTO products (manufacturer, prodid, proddesc, kind) " + values;
+			stmt.executeUpdate(sql);
+			stmt.close();
+			c.commit();
+			c.close();
+		} catch ( Exception e ) {
+			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+			System.exit(0);
+		}
+		System.out.println("Products record inserted successfully");
+	}
+	
+	
+	
+	
+	public static void insertLinkRecord( String dbName, int linkid, String linkname)
+	{
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
 			stmt = c.createStatement();
 			String values =	  "VALUES (" + linkid + ", " + "'" + linkname +"'" + ");";
 			String sql = "INSERT INTO links (linkidnum, linkname) " + values;
@@ -94,12 +139,9 @@ public class updateDatabase
 			Class.forName("org.sqlite.JDBC");
 			String conn = "jdbc:sqlite:" + dbName;
 			c = DriverManager.getConnection(conn);
-			//  c.setAutoCommit(false);
-			System.out.println("Opened database successfully");
 			Statement stmt = c.createStatement();
 			String sql = "DELETE FROM " + tableName+ ";";
 			stmt.executeUpdate(sql);
-			//   c.commit();
 		}
 		catch ( Exception e ) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
@@ -161,11 +203,8 @@ public class updateDatabase
 				  updateObj.put("Level", new Integer( rs2.getInt(4)));
 				  
 				System.out.println("TimeStamp = " + rs2.getString("upddatetime"));
-			//	System.out.println("Kind = " + rs2.getString("kind"));
 			}
 			rs2.close(); 
-			
-			
 			c.close();
 		} catch ( Exception e ) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
@@ -175,12 +214,11 @@ public class updateDatabase
 		return responseBody;
 	}
 
-	public static void updateStatusTable( String dbName, int  moduleID,  int level )
+	public static void updateStatusTable( String dbName, int  moduleID,  int level, int fadeRate, String info )
 	{
 		Connection c = null;
 		Statement stmt = null;
 		int status;
-	//	String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
 		String timeStamp = upbServer.getDateandTime();
 		try {
 			Class.forName("org.sqlite.JDBC");
@@ -196,15 +234,11 @@ public class updateDatabase
 			while (rs.next()) {
 				devrecfound = true;
 			}
-		//	DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-		//	Calendar cal = Calendar.getInstance();
-
 			if(devrecfound == false)
 			{	
-
 				String insertTableSQL = "INSERT INTO devicestatus"
-						+ "(moduleid, upddatetime, status, level) VALUES"
-						+ "(?,?,?,?)";
+						+ "(moduleid, upddatetime, status, level, faderate, info) VALUES"
+						+ "(?,?,?,?,?, ?)";
 
 				PreparedStatement preparedStatement = c.prepareStatement(insertTableSQL);
 				preparedStatement.setInt(1, moduleID);
@@ -215,14 +249,14 @@ public class updateDatabase
 					status = 0;
 				preparedStatement.setInt(3, status);
 				preparedStatement.setInt(4, level);
-
+				preparedStatement.setInt(5, fadeRate);
+				preparedStatement.setString(6, info);
 				// execute insert SQL stetement
 				preparedStatement.executeUpdate();
-
 			}
 			else
 			{
-				String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=? where moduleid=?";
+				String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=?, faderate=?, info=? where moduleid=?";
 
 				PreparedStatement preparedStatement =
 						c.prepareStatement(sql);
@@ -234,20 +268,17 @@ public class updateDatabase
 					status = 0;
 				preparedStatement.setInt(3, status);
 				preparedStatement.setInt  (4, level);  //level
-				preparedStatement.setInt  (5, moduleID); 
+				preparedStatement.setInt  (5, fadeRate);  //faderate
+				preparedStatement.setString  (6, info);
+				preparedStatement.setInt  (7, moduleID); 
 
 				int rowsAffected = preparedStatement.executeUpdate();
 				devrecfound = false;
 			}
-
-
 			rs.close();
 			stmt.close();
 			rs.close();
 			c.close();
-
-
-
 		} catch ( Exception e ) {
 			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
 			System.exit(0);
@@ -269,13 +300,9 @@ public class updateDatabase
 			String sel1;
 			int manf, prod;
 			ResultSet rs = stmt.executeQuery(sel);
-			
 
 			while (rs.next()) {
 			dArray[index++] = rs.getInt("moduleid");
-			
-			//	prod = rs.getInt("prodid");
-			
 			}
 			rs.close();
 			stmt.close();
@@ -285,6 +312,54 @@ public class updateDatabase
 			System.exit(0);
 		}
 	}
-
+	public static void updateDevicesFromLinkCmd( String dbName,  int linkID)
+	{
+		 Connection c = null;
+		Statement stmt = null;
+		try {
+			int status = 0;
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(true);
+			stmt = c.createStatement();
+			String sel = "SELECT * FROM presets WHERE linkid = " + linkID + ";";
+			String sel1;
+			int manf, prod;
+			String timeStamp = upbServer.getDateandTime();
+			ResultSet rs = stmt.executeQuery(sel);
+	
+			while (rs.next()) {
+				
+				int tempModuleID = rs.getInt("moduleid");
+				int presetDim = rs.getInt("presetdim");
+				int presetFade = rs.getInt("presetfade");
+				System.out.println("Device ID = " + rs.getInt("moduleid"));
+				System.out.println("Link ID = " + rs.getInt("linkid"));
+				System.out.println("Preset Dim = " + rs.getInt("presetdim"));
+				System.out.println("FadeRate = " + rs.getInt("presetfade"));
+					String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=?, faderate=? where moduleid=?";
+					PreparedStatement preparedStatement =
+							c.prepareStatement(sql);
+					preparedStatement.setInt  (1, tempModuleID);  //moduleid
+					preparedStatement.setString(2, timeStamp); //
+					if(presetDim > 0)
+						status = 1;
+					else
+						status = 0;
+					preparedStatement.setInt(3, status);
+					preparedStatement.setInt  (4, presetDim);  //level
+					preparedStatement.setInt  (5, presetFade);  //faderate
+					preparedStatement.setInt  (6, tempModuleID); 
+					 preparedStatement.executeUpdate();
+				}
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch ( Exception e ) {
+			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+			System.exit(0);
+		}
+	}
 }
 

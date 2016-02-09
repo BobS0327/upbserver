@@ -9,6 +9,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import com.bobs0327.readCSV;
+import com.bobs0327.upbServer;
+
 public class addUPERecords2DB {
 
 	static ArrayList<String> parsedTokenList = new ArrayList<String>();
@@ -31,17 +34,35 @@ public class addUPERecords2DB {
 		long d1 = new File(inputDBName).lastModified();
 		long d2 = new File(inputExpFileName).lastModified();
 		if (d1 > d2 & bDatabaseJustCreated == false)
-			System.out.println("Database is newer than export file, no action needed"); 
-		else if (d1 < d2 || bDatabaseJustCreated == true)
 		{
-			System.out.println("Database is just created or older than export file, recreating database file");
+			System.out.println("Database is newer than export file, no action needed"); 
+			
+			d1 = new File(inputDBName).lastModified();
+			d2 = new File(upbServer.productCSVfile).lastModified();
+			if (d1 < d2  && bDatabaseJustCreated == false )
+			{
+				System.out.println("Products table needs to be updated, a newer CSV file exists");	
+				updateDatabase.clearTables(inputDBName, "products");	
+				// Rebuild the products table
+				readCSV csv = new readCSV(inputDBName, upbServer.productCSVfile);
+				csv.run();
+			}
+		}
+			else if (d1 < d2 || bDatabaseJustCreated == true)
+		{
+			System.out.println("Database is just created or is older than export file, recreating database file");
 			try {
 				if(bDatabaseJustCreated == false)
 				{
 					updateDatabase.clearTables(inputDBName, "devices");	
 					updateDatabase.clearTables(inputDBName, "links");	
 					updateDatabase.clearTables(inputDBName, "header");	
+					updateDatabase.clearTables(inputDBName, "presets");	
+					updateDatabase.clearTables(inputDBName, "products");	
 				}
+				// Rebuild the products table
+				readCSV csv = new readCSV(inputDBName, upbServer.productCSVfile);
+				csv.run();
 				File file = new File(inputExpFileName);
 				FileReader fileReader = new FileReader(file);
 				BufferedReader bufferedReader = new BufferedReader(fileReader);
@@ -55,6 +76,9 @@ public class addUPERecords2DB {
 					{
 					case 0:
 						parseImportHeader(inputDBName);
+						break;
+					case 4:
+						parsePresets(inputDBName); 
 						break;
 					case 2:
 						parseLink(inputDBName);
@@ -83,6 +107,18 @@ public class addUPERecords2DB {
 		updateDatabase.insertHeaderRecord(  inputDBName, d1,d2,d3,d4,d5 );
 	}
 
+	static void parsePresets(String inputDBName) {
+		int d1,d3,d4,d5,d6;
+		// See if we should ignore this link
+	    if (getIntToken(4) == 255) return;
+		d1 = getIntToken(1);
+		d3 = getIntToken(3);
+		d4 = getIntToken(4);
+		d5 = getIntToken(5);
+		d6 = getIntToken(6);
+		updateDatabase.insertPresetRecord(  inputDBName, d3,d4,d1,d5,d6 );
+	}
+	
 	static void parseDevice(String inputDBName) {
 		int bx = 0;
 		int index = 0;

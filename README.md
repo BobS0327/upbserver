@@ -55,4 +55,6 @@ Results if command failed:
 The action of status only needs a moduleid input.
 
 
+Update 02/08/2016
+This update is mostly code optimizations and bug fixes.
 
