@@ -2,8 +2,7 @@
 Universal Powerline Bus back end server to monitor UPB traffic on the power lines and also allow executing UPB commands via a web browser
 
 The latest version now maintains a SQLite database of the current status (on,off, level) of all devices on the network.  This is 
-accomplished by polling all devices listed in the export file when the application is initially started to bring the database up to date.  
-The application will thereafter passively "sniff" the powerline and  update the database based upon the packet data.  This is done 
+accomplished by polling all devices listed in the export file when the application is initially started to bring the database up to date. The application will thereafter passively "sniff" the powerline and  update the database based upon the packet data.  This is done 
 to minimize the traffic on the powerline network.  UPB commands are sent to the app via a web browser.  Thus, the app acts as a back end
 UPB server.  The database is also updated when these remote commands are received.  IOW, if a ActivateLink command is received, the
 databse is immediately updated to reflect the issuance of this command.
@@ -11,28 +10,17 @@ databse is immediately updated to reflect the issuance of this command.
 Two files must exist prior to starting upbserver.  The first file is the export file from Upstart and the second file is a 
 Comma Separated Values file that contains  details on various manufacturer products.  An example of the second file follows:
 
-5,1, 35A00-1 600W Dimming Switch, Switch  
-  
+5,1, 35A00-1 600W Dimming Switch, Switch   
 5,2, 35A00-2 1000W Dimming Switch, Switch  
-
 5,16, 35A00-3 600W Non-Dimming Switch, Switch  
-
-5,17, 35A00-4 1000W Non-Dimming Switch, Switch  
-
+5,17, 35A00-4 1000W Non-Dimming Switch, Switch   
 5,18, 40A00-1 15A Relay Switch, Switch  
-
 5,3, 55A00-1 1000W Dimming Switch, Switch  
-
 5,4, 55A00-2 1500W Dimming Switch, Switch  
-  
 5,5, 55A00-3 2400W Dimming Switch, Switch  
-
 5,32, 59A00-1 300W Lamp Module, Module  
-
 5,48, 60A00-1 15A Appliance Module, Module  
-
 5,80, 38A00-1 6-Button Room Controller, Keypad  
-
 5,96, 38A00-2 8-Button House Controller, Keypad  
 
 The above CSV file contains all the Leviton/Hai devices.  The manufacturer id is 5, the device id for a 40A00-1 15A Realy Switch is 18
