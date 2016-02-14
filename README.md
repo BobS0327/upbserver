@@ -45,32 +45,32 @@ added/removed, all the needs to be done is update the products CSV file.  Rebuil
 
 There is also a config.properties file that must be updated prior to executing the application An example of the file is..
 
-*#*upbServer configuration properties
-*#*Linux /dev/ttyUSB0
-comm=COM4
-*#*port for http server
-port=8080
-upbexpfilefullpathname=c:/temp/myUpStart.upe
-dbname=upbserver.db
-sourceid=255
+*#*upbServer configuration properties  
+*#*Linux /dev/ttyUSB0  
+comm=COM4  
+*#*port for http server  
+port=8080  
+upbexpfilefullpathname=c:/temp/myUpStart.upe  
+dbname=upbserver.db  
+sourceid=255  
 *#*number of seconds delay between issuing serial write commands
-delaybetweencommands=4
-httpcontext=/upb
-networkid=1
-*#*name of csv input file for product description table (products)
-productcsvfile=c:/temp/upbserver.csv
-*#*delay for sending web response, needed for getting response from device and sending response to client
-webresponsedelay=6
-*#* source email for sending emails/texts
-fromemail=abc@wherever.com
-*#*target email
-toemail=cde@whatever.com
-emailuserid=goofy@whatever.com
-emailpassword=password
-*#*reboot timer values
-rebootserver=0,1,0,0,0
+delaybetweencommands=4  
+httpcontext=/upb  
+networkid=1  
+*#*name of csv input file for product description table (products)  
+productcsvfile=c:/temp/upbserver.csv  
+*#*delay for sending web response, needed for getting response from device and sending response to client  
+webresponsedelay=6  
+*#* source email for sending emails/texts  
+fromemail=abc@wherever.com  
+*#*target email  
+toemail=cde@whatever.com  
+emailuserid=goofy@whatever.com  
+emailpassword=password  
+*#*reboot timer values  
+rebootserver=0,1,0,0,0  
 
-The *#* sign is a COMMENT. 
+The *#* sign is a COMMENT.   
 The delaybetweencommands and webresponsedelay are used to fine tune the app for your installation.  These variable may have to be increased/decreased
 as required.
 
