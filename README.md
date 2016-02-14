@@ -86,30 +86,30 @@ For serial communications, I use the Java-Simple-Serial-Connector.
 
 There are five web commands, BLINKON, ACTIVATE, DEACTIVATE, STATUS and GOTO.  They are used as follows
 
-BLINKON
+BLINKON:  
 localhost:8080/upb?action=blinkon&moduleid=141&blinkrate=200
 
 Where moduleid is the  device number and blinkrate is a value from 0 to 255.  blinkrate is optional, if not used, it will default to 255
 
-ACTIVATE A LINK:
+ACTIVATE A LINK:  
 localhost:8080/upb?action=activatelink&linkid=3
 
 This activates link #3
 
 
-DEACTIVATE A LINK:
+DEACTIVATE A LINK:  
 localhost:8080/upb?action=deactivatelink&linkid=3
 
 This deactivates link #3
 
 
-STATUS
+STATUS:  
 localhost:8080/upb?action=status&moduleid=141&blinkrate
 
 This returns current status of device # 140
 
 
-GOTO
+GOTO:  
 localhost:8080/upb?action=goto&moduleid=141&level=98&faderate=200
 
 This sets device # 141 to a level of 98 at a faderate of 200.  Faderate is optional, if not used, it defaults to 255.  Level is required.  It is a value of 0 to 100.
