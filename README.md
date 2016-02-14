@@ -11,18 +11,29 @@ databse is immediately updated to reflect the issuance of this command.
 Two files must exist prior to starting upbserver.  The first file is the export file from Upstart and the second file is a 
 Comma Separated Values file that contains  details on various manufacturer products.  An example of the second file follows:
 
-5,1, 35A00-1 600W Dimming Switch, Switch
-5,2, 35A00-2 1000W Dimming Switch, Switch
-5,16, 35A00-3 600W Non-Dimming Switch, Switch
-5,17, 35A00-4 1000W Non-Dimming Switch, Switch
-5,18, 40A00-1 15A Relay Switch, Switch
-5,3, 55A00-1 1000W Dimming Switch, Switch
-5,4, 55A00-2 1500W Dimming Switch, Switch
-5,5, 55A00-3 2400W Dimming Switch, Switch
-5,32, 59A00-1 300W Lamp Module, Module
-5,48, 60A00-1 15A Appliance Module, Module
-5,80, 38A00-1 6-Button Room Controller, Keypad
-5,96, 38A00-2 8-Button House Controller, Keypad
+5,1, 35A00-1 600W Dimming Switch, Switch  
+  
+5,2, 35A00-2 1000W Dimming Switch, Switch  
+
+5,16, 35A00-3 600W Non-Dimming Switch, Switch  
+
+5,17, 35A00-4 1000W Non-Dimming Switch, Switch  
+
+5,18, 40A00-1 15A Relay Switch, Switch  
+
+5,3, 55A00-1 1000W Dimming Switch, Switch  
+
+5,4, 55A00-2 1500W Dimming Switch, Switch  
+  
+5,5, 55A00-3 2400W Dimming Switch, Switch  
+
+5,32, 59A00-1 300W Lamp Module, Module  
+
+5,48, 60A00-1 15A Appliance Module, Module  
+
+5,80, 38A00-1 6-Button Room Controller, Keypad  
+
+5,96, 38A00-2 8-Button House Controller, Keypad  
 
 The above CSV file contains all the Leviton/Hai devices.  The manufacturer id is 5, the device id for a 40A00-1 15A Realy Switch is 18
 Next is the description of the device and finally the device type (kind) which 40A00 Realy Switch is of the SWITCH device type.
