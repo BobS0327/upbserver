@@ -1,3 +1,19 @@
+/*
+Copyright (C) 2016  R.W. Sutnavage
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/.
+*/
 package com.bobs0327;
 // Activate link #3
 //87040103FF2052
@@ -6,6 +22,7 @@ import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
 import jssc.SerialPortException;
+import miscMethods.sendMailSSL;
 import upbHttpServerMethods.HttpRequestHandler;
 import upbHttpServerMethods.UPBHttpServer;
 import java.sql.Date;
@@ -15,9 +32,11 @@ import java.util.Properties;
 import databaseMethods.addUPERecords2DB;
 import databaseMethods.updateDatabase;
 import java.io.*;
+import java.util.LinkedList;
 
 public class upbServer extends Thread
 {
+	  public static LinkedList<String> webString = new LinkedList<String>();
 	static int prevModuleId;
 	static boolean bAlreadyUpdated = false;
 	static StringBuilder sb = new StringBuilder();
@@ -37,12 +56,23 @@ public class upbServer extends Thread
 	static public String networkID;
 	static 	SerialPort serialPort; 	
 	static int _portNumber; 
+	public static int webDelay;
 	public static String productCSVfile;
+	public static String fromEmail;
+	public static String toEmail;
+	public static String emailUserid;
+	public static String emailPassword;
+	public static String[] rebootServer;
 
 	public static void main(String[] args) 
 	{
 		System.out.println("Initializing application");
 		initializeApplication();
+	
+	
+//		 sendMailSSL sm = new sendMailSSL(emailUserid, emailPassword, toEmail, fromEmail, "Testing upbserver"); 
+//		sm.run();
+//		System.exit(0);
 		try {
 			serialPort = new SerialPort(comm); 
 			_portNumber = port; //Arbitrary port number
@@ -126,6 +156,14 @@ public class upbServer extends Thread
 			httpContext = properties.getProperty("httpcontext");
 			networkID = properties.getProperty("networkid");
 			productCSVfile = properties.getProperty("productcsvfile");
+			delayTemp = properties.getProperty("webresponsedelay");
+			webDelay = Integer.parseInt(delayTemp);
+			fromEmail = properties.getProperty("fromemail");
+			fromEmail = properties.getProperty("fromemail");
+			toEmail = properties.getProperty("toemail");
+			emailUserid = properties.getProperty("emailuserid");
+			emailPassword = properties.getProperty("emailpassword");
+			rebootServer = properties.getProperty("rebootserver").split(",");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -358,12 +396,12 @@ public class upbServer extends Thread
 		switch (messageID) {
 		case 0x20: // Activate Link Command
 			System.out.println("Activate Link Command");
-			updateDatabase.updateDevicesFromLinkCmd( upbServer.dbName,  parsedDestID);
+			updateDatabase.updateDevicesFromLinkCmd( upbServer.dbName,  parsedDestID, true);
 			break;
 
 		case 0x21:  // Deactivate Link Command
 			System.out.println("Deactivate Link Command");
-			updateDatabase.updateDevicesFromLinkCmd( upbServer.dbName,  parsedDestID);
+			updateDatabase.updateDevicesFromLinkCmd( upbServer.dbName,  parsedDestID, false);
 			break;
 
 		case 0x22: // Goto Command
@@ -424,11 +462,11 @@ public class upbServer extends Thread
 				parsedChannel =  theMessage[UPBMSG_BODY + 1];
 				if(parsedBlinkRate > 0)
 				{
-					sBlink = "BLINK ON";
+					sBlink = "BLINK ON Blink Rate is " + parsedBlinkRate ;
 				}
 				else sBlink = "";
 
-				updateDatabase.updateStatusTable( upbServer.dbName  , parsedDestID ,parsedBlinkRate, parsedFadeRate, sBlink);
+				updateDatabase.updateStatusTable( upbServer.dbName  , parsedDestID ,100, parsedFadeRate, sBlink);
 
 			}
 			else  // Link

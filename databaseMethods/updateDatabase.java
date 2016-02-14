@@ -1,3 +1,19 @@
+/*
+Copyright (C) 2016  R.W. Sutnavage
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/.
+*/
 package databaseMethods;
 
 import java.sql.Connection;
@@ -11,6 +27,7 @@ import java.util.Calendar;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.bobs0327.buildCmd;
 import com.bobs0327.upbServer;
 
 public class updateDatabase
@@ -83,6 +100,7 @@ public class updateDatabase
 		}
 		System.out.println("Preset record inserted successfully");
 	}
+	
 	
 	public static void insertProductsRecord( String dbName, int manuf, int prod, String desc, String kind )
 	{
@@ -312,7 +330,7 @@ public class updateDatabase
 			System.exit(0);
 		}
 	}
-	public static void updateDevicesFromLinkCmd( String dbName,  int linkID)
+	public static void updateDevicesFromLinkCmd( String dbName,  int linkID, Boolean bActivate)
 	{
 		 Connection c = null;
 		Statement stmt = null;
@@ -324,8 +342,14 @@ public class updateDatabase
 			c.setAutoCommit(true);
 			stmt = c.createStatement();
 			String sel = "SELECT * FROM presets WHERE linkid = " + linkID + ";";
-			String sel1;
+			String sel1 = "SELECT * FROM links WHERE linkidnum = " + linkID + ";";
+			String linkName = "";
 			int manf, prod;
+			ResultSet rs1 = stmt.executeQuery(sel1);
+			while (rs1.next()) {
+			linkName = 	rs1.getString("linkname");	
+			}
+		//	linkName += " ON";
 			String timeStamp = upbServer.getDateandTime();
 			ResultSet rs = stmt.executeQuery(sel);
 	
@@ -338,11 +362,18 @@ public class updateDatabase
 				System.out.println("Link ID = " + rs.getInt("linkid"));
 				System.out.println("Preset Dim = " + rs.getInt("presetdim"));
 				System.out.println("FadeRate = " + rs.getInt("presetfade"));
-					String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=?, faderate=? where moduleid=?";
+					String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=?, faderate=?, info=? where moduleid=?";
 					PreparedStatement preparedStatement =
 							c.prepareStatement(sql);
 					preparedStatement.setInt  (1, tempModuleID);  //moduleid
 					preparedStatement.setString(2, timeStamp); //
+					if(bActivate == false)
+					{
+						presetDim = 0;
+						presetFade = buildCmd.DEFAULT_FADE_RATE;
+					}
+					
+					
 					if(presetDim > 0)
 						status = 1;
 					else
@@ -350,9 +381,20 @@ public class updateDatabase
 					preparedStatement.setInt(3, status);
 					preparedStatement.setInt  (4, presetDim);  //level
 					preparedStatement.setInt  (5, presetFade);  //faderate
-					preparedStatement.setInt  (6, tempModuleID); 
-					 preparedStatement.executeUpdate();
-				}
+					
+					if(bActivate == true)
+					{
+						preparedStatement.setString  (6, linkName); 
+					}
+					else
+					{
+						preparedStatement.setString  (6, ""); 
+					}
+					
+						preparedStatement.setInt  (7, tempModuleID); 
+						 preparedStatement.executeUpdate();
+			}
+		
 			rs.close();
 			stmt.close();
 			c.close();

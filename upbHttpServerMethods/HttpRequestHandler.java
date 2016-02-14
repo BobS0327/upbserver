@@ -1,3 +1,19 @@
+/*
+Copyright (C) 2016  R.W. Sutnavage
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/.
+*/
 package upbHttpServerMethods;
 
 import java.io.IOException;
@@ -9,14 +25,20 @@ import com.bobs0327.upbServer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import databaseMethods.updateDatabase;
+import java.util.LinkedList;
+
 import org.json.simple.JSONObject;
 
 public class HttpRequestHandler implements HttpHandler {
 
 	private static final String ACTION = "action";
 	private static final String MODULEID = "moduleid";
+	private static final String LINKID = "linkid";
 	private static final String LEVEL = "level";
 	private static final String FADERATE = "faderate";
+	private static final String BLINKRATE = "blinkrate";
+	
+	private static final String CHANNEL = "channel";
 	private static final int PARAM_NAME_IDX = 0;
 	private static final int PARAM_VALUE_IDX = 1;
 	private static final int HTTP_OK_STATUS = 200;
@@ -45,8 +67,11 @@ public class HttpRequestHandler implements HttpHandler {
 		buildCmd bc1 = new buildCmd();
 		String Action = "";
 		String ModuleID = "";
+		String LinkID = "";
 		String Level= "";
 		String FadeRate = "";
+		String Channel = "";
+		String BlinkRate = "";
 		//Get the request query
 		String query = uri.getQuery();
 		if (query != null) {
@@ -64,11 +89,20 @@ public class HttpRequestHandler implements HttpHandler {
 							if (MODULEID.equalsIgnoreCase(param[PARAM_NAME_IDX])) {
 								ModuleID = param[PARAM_VALUE_IDX];
 							}
+							if (LINKID.equalsIgnoreCase(param[PARAM_NAME_IDX])) {
+								LinkID = param[PARAM_VALUE_IDX];
+							}
 							if (LEVEL.equalsIgnoreCase(param[PARAM_NAME_IDX])) {
 								Level = param[PARAM_VALUE_IDX];
 							}
 							if (FADERATE.equalsIgnoreCase(param[PARAM_NAME_IDX])) {
 								FadeRate = param[PARAM_VALUE_IDX];
+							}
+							if (CHANNEL.equalsIgnoreCase(param[PARAM_NAME_IDX])) {
+								Channel = param[PARAM_VALUE_IDX];
+							}
+							if (BLINKRATE.equalsIgnoreCase(param[PARAM_NAME_IDX])) {
+								BlinkRate = param[PARAM_VALUE_IDX];
 							}
 						}
 					}
@@ -76,60 +110,211 @@ public class HttpRequestHandler implements HttpHandler {
 			}
 		}
 
-		if (Action.equalsIgnoreCase("UPDATE"))
+		//		 upbServer.webString.add("First");
+		if (Action.equalsIgnoreCase("BLINKON"))
 		{
-			System.out.println("Web Update");
 			mvInput.clear();
-			mvInput.moduleid = Integer.parseInt(ModuleID);
-			tempModuleID = Integer.parseInt(ModuleID);
+			mvInput.action = 0x25;
+			if(BlinkRate != "")
+			{
+				mvInput.blinkRate = Integer.parseInt(BlinkRate);
+			}
+			else
+			{
+				mvInput.blinkRate = buildCmd.DEFAULT_BLINK_RATE;  // 255
+			}
+			
+			if(LinkID != "")
+			{
+				mvInput.isDevice = false;
+				mvInput.moduleid = Integer.parseInt(LinkID);
+				// mvInput.fadeRate = Integer.parseInt(FadeRate);
+			}
+			if(ModuleID != "")
+			{
+				mvInput.isDevice = true;
+				mvInput.moduleid = Integer.parseInt(ModuleID);
+				if(Channel != "")
+				{
+					mvInput.channel = Integer.parseInt(Channel);
+				}
+				else 
+				{
+					mvInput.channel = 0;
+				}
+			}
 			int inSourceID = Integer.parseInt(upbServer.sourceID);
 			mvInput.sourceid = inSourceID;
-			mvInput.isDevice = true;
 			int inNetworkID = Integer.parseInt(upbServer.networkID);
 			mvInput.networkid = inNetworkID;
-			mvInput.isDevice = true;
-			mvInput.action = 0x22;  // report State Command
-			mvInput.level = Integer.parseInt(Level);
-			mvInput.fadeRate = Integer.parseInt(FadeRate);
-			mvInput.channel =0; 
-			System.out.println("Web Update1");
 			bc1.buildCmd(mvInput);
-			System.out.println("Web Update2");
 			String 	myCmd = mvInput.message.toString();
 			String dateStr = upbServer.getDateandTime();
-
 			System.out.println(dateStr + " Sent: "+ myCmd);
-			System.out.println("Web Update3");
 			upbServer.sendCmd(myCmd);
-			System.out.println("Web Update4");
+
 			try {
-				Thread.sleep(upbServer.cmdDelay*1000);
+				Thread.sleep(upbServer.webDelay*1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+			}
+			JSONObject activatelinkobj = new JSONObject();
+			activatelinkobj.put("action", "BLINKON");
+			activatelinkobj.put("result", "BLINKON Command submitted successfully");
+
+			responseBody =	activatelinkobj.toString();
+		}
+		else if (Action.equalsIgnoreCase("ACTIVATELINK"))
+		{
+			mvInput.clear();	
+			mvInput.moduleid = Integer.parseInt(LinkID);
+			mvInput.isDevice = false;
+			int inSourceID = Integer.parseInt(upbServer.sourceID);
+			mvInput.sourceid = inSourceID;
+
+			int inNetworkID = Integer.parseInt(upbServer.networkID);
+			mvInput.networkid = inNetworkID;
+			mvInput.action = 0x20;  // Activate Link
+			System.out.println("In ACTIVATELINK");
+			bc1.buildCmd(mvInput);
+			String 	myCmd = mvInput.message.toString();
+			String dateStr = upbServer.getDateandTime();
+			upbServer.sendCmd(myCmd);
+			try {
+				Thread.sleep(upbServer.webDelay*1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			JSONObject activatelinkobj = new JSONObject();
+			activatelinkobj.put("action", "ACTIVATELINK");
+			activatelinkobj.put("result", "Command submitted successfully for link # " + LinkID);
+
+			responseBody =	activatelinkobj.toString();   // updateDatabase.findDeviceRecord( upbServer.dbName, tempModuleID );	
+
+			updateDatabase.updateDevicesFromLinkCmd( upbServer.dbName,  Integer.parseInt(LinkID), true);
+		}
+		else if (Action.equalsIgnoreCase("DEACTIVATELINK"))
+		{
+			mvInput.clear();	
+			mvInput.moduleid = Integer.parseInt(LinkID);
+			mvInput.isDevice = false;
+			int inSourceID = Integer.parseInt(upbServer.sourceID);
+			mvInput.sourceid = inSourceID;
+
+			int inNetworkID = Integer.parseInt(upbServer.networkID);
+			mvInput.networkid = inNetworkID;
+			mvInput.action = 0x21;  // DeActivate Link
+			System.out.println("In DEACTIVATELINK");
+			bc1.buildCmd(mvInput);
+			String 	myCmd = mvInput.message.toString();
+			String dateStr = upbServer.getDateandTime();
+			upbServer.sendCmd(myCmd);
+			try {
+				Thread.sleep(upbServer.webDelay*1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			JSONObject activatelinkobj = new JSONObject();
+			activatelinkobj.put("action", "DEACTIVATELINK");
+			activatelinkobj.put("result", "Command submitted successfully for link # " + LinkID);
+
+			responseBody =	activatelinkobj.toString();   // updateDatabase.findDeviceRecord( upbServer.dbName, tempModuleID );	
+		}
+		else if (Action.equalsIgnoreCase("GOTO")  )
+		{
+			System.out.println("In GOTO");
+			if(ModuleID == null && ModuleID.isEmpty())
+			{
+			JSONObject activatelinkobj = new JSONObject();
+			activatelinkobj.put("action", "GOTO");
+			activatelinkobj.put("result", "moduleid not entered (or misspelled) for GOTO command");
+			responseBody =	activatelinkobj.toString();	
+			return responseBody;
+			}
+			if(Level.equals(""))
+	//		if(Level == null)
+			{
+			JSONObject activatelinkobj = new JSONObject();
+			activatelinkobj.put("action", "GOTO");
+			activatelinkobj.put("result", "level not entered (or misspelled) for GOTO command");
+			responseBody =	activatelinkobj.toString();	
+			return responseBody;
 			}
 			mvInput.clear();
-			mvInput.moduleid = Integer.parseInt(ModuleID);
+			mvInput.action = 0x22;  // GOTO
+			if(LinkID != null && !LinkID.isEmpty())
+			{    // Example
+				// localhost:8080/upb?action=goto&linkid=3&level=100
+				mvInput.moduleid = Integer.parseInt(LinkID);
+				mvInput.level = Integer.parseInt(Level);
+				if(FadeRate != "")
+				{
+					mvInput.fadeRate = Integer.parseInt(FadeRate);
+				}
+				else
+				{
+					mvInput.fadeRate = buildCmd.DEFAULT_FADE_RATE;  // 255
+				}
+				mvInput.isDevice = false;
+			}
+			else   if(ModuleID != null && !ModuleID.isEmpty()) 
+			{
+				mvInput.isDevice = true;
+				mvInput.moduleid = Integer.parseInt(ModuleID);
+				mvInput.level = Integer.parseInt(Level);
+				if(FadeRate != "")
+				{
+					mvInput.fadeRate = Integer.parseInt(FadeRate);
+				}
+				else
+				{
+					mvInput.fadeRate = buildCmd.DEFAULT_FADE_RATE;  // 255
+				}
+				if(Channel != "")
+				{
+					mvInput.channel = Integer.parseInt(Channel);
+				}
+				else 
+				{
+					mvInput.channel = 0;
+				}
+			}
+			else // Both ModuleID and  LinkID are EMPTY on GOTO action
+			{
+				JSONObject activatelinkobj = new JSONObject();
+				activatelinkobj.put("action", "GOTO");
+				activatelinkobj.put("result", "moduleid or linkid not entered (or misspelled) for GOTO command");
+				responseBody =	activatelinkobj.toString();	
+				return responseBody;
+			}
+			int inSourceID = Integer.parseInt(upbServer.sourceID);
 			mvInput.sourceid = inSourceID;
+			int inNetworkID = Integer.parseInt(upbServer.networkID);
 			mvInput.networkid = inNetworkID;
-			mvInput.isDevice = true;
-			mvInput.level = Integer.parseInt(Level);
-			mvInput.fadeRate = Integer.parseInt(FadeRate);
-			mvInput.channel =0; 
-			mvInput.action = 0x30;  // report State Command
-
 			bc1.buildCmd(mvInput);
-			myCmd = mvInput.message.toString();
-			dateStr = upbServer.getDateandTime();
-
+			String 	myCmd = mvInput.message.toString();
+			String dateStr = upbServer.getDateandTime();
 			System.out.println(dateStr + " Sent: "+ myCmd);
 			upbServer.sendCmd(myCmd);
 
 			try {
-				Thread.sleep(upbServer.cmdDelay*1000);
+				Thread.sleep(upbServer.webDelay*1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			responseBody =	updateDatabase.findDeviceRecord( upbServer.dbName, tempModuleID );	
+			if(mvInput.isDevice == true)
+			{
+				responseBody =	updateDatabase.findDeviceRecord( upbServer.dbName, mvInput.moduleid  );
+			}
+			else
+			{
+				JSONObject activatelinkobj = new JSONObject();
+				activatelinkobj.put("action", "GOTO-BLINKOFF");
+				activatelinkobj.put("result", "Command submitted successfully for link # " + LinkID);
+				responseBody =	activatelinkobj.toString();	
+			}
 		}
 		else
 			if (Action.equalsIgnoreCase("STATUS"))

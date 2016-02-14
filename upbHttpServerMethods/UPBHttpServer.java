@@ -1,5 +1,20 @@
-package upbHttpServerMethods;
+/*
+Copyright (C) 2016  R.W. Sutnavage
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/.
+*/
+package upbHttpServerMethods;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -7,22 +22,10 @@ import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-/**
- * @author ashraf
- * 
- */
 @SuppressWarnings("restriction")
 public class UPBHttpServer {
 
 	private HttpServer httpServer;
-
-	/**
-	 * Instantiates a new simple http server.
-	 *
-	 * @param port the port
-	 * @param context the context
-	 * @param handler the handler
-	 */
 	public UPBHttpServer(int port, String context, HttpHandler handler) {
 		try {
 			//Create HttpServer which is listening on the given port 
@@ -34,14 +37,8 @@ public class UPBHttpServer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
-
-	/**
-	 * Start.
-	 */
 	public void start() {
 		this.httpServer.start();
 	}
-
 }

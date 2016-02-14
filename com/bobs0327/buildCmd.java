@@ -1,7 +1,24 @@
+/*
+Copyright (C) 2016  R.W. Sutnavage
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/.
+*/  
+
 package com.bobs0327;
 
 
-import gnu.io.CommPortIdentifier;
+//import gnu.io.CommPortIdentifier;
 import java.util.Enumeration;
 
 public class buildCmd {
@@ -13,6 +30,7 @@ public class buildCmd {
 	final 	static  int  GOTO = 2; /** Got or send a GOTO (link or device) */
 	final 	static  int  START_FADE = 3; /** Got or send a START_FADE (link or device) */
 	final 	static  int  STOP_FADE = 4;  /** Got or send a STOP_FADE (link or device) */
+
 	final 	static  int  QUERY_STATE = 5; /** Send a query state request (device) */
 	final 	static  int	 STATE_REPORT = 6; /** Got a state report (device) */
 	public static final int INVALID_CHANNEL = -1;
@@ -23,13 +41,13 @@ public class buildCmd {
 
 	/** Used to indicate the device should use it's default fade rate */
 	public static final int DEFAULT_FADE_RATE = 255;
-
+public static final int DEFAULT_BLINK_RATE = 255;
 	/** Used to indicate invalid/unassigned device state */
 	public static final int UNASSIGNED_DEVICE_STATE = -1;
 	public static final int LAST_DIM_LEVEL = 255;
 	public static final int DEFAULT_DIM_LEVEL = 256;
 
-	static CommPortIdentifier portId;
+//	static CommPortIdentifier portId;
 	static final int UPBMSG_CONTROL_HIGH = 0;
 	static final int UPBMSG_CONTROL_LOW = 1;
 	static final int UPBMSG_NETWORK_ID = 2;
@@ -73,15 +91,30 @@ public class buildCmd {
 		{
 			theMessageSize  +=2;	
 		}
+		else if(mv.action == 0x25)	// Blink
+		{
+			
+			if(mv.isDevice == false) // Link 
+			{
+				theMessageSize  +=1;
+			}
+			else
+			{
+			//	if(mv.channel != ALL_CHANNELS)
+			//	{
+				theMessageSize  +=2;
+			//	}
+			//	else
+			//	{
+			//		theMessageSize +=1;
+			//	}
+			}
+		}
 		else
 		{
 			theMessageSize = 6;
 		}
-		
-		
 		theMessage = new int[theMessageSize];
-		
-
 		switch(mv.action) {
 		case 0x30:	// Report State Command	
 		case 0x07:   // Get Status
@@ -101,7 +134,17 @@ public class buildCmd {
 		      theMessage[UPBMSG_DEST_ID] = mv.moduleid;
 		      theMessage[UPBMSG_SOURCE_ID] = mv.sourceid;
 			break;
-		
+		case 0x21:  //Deactivate Link
+			  theMessage[UPBMSG_CONTROL_HIGH] = 0x80 | (theMessageSize + 1);
+		      theMessage[UPBMSG_CONTROL_LOW] =  0x14; //0x14;
+		  	theMessage[UPBMSG_MESSAGE_ID] = mv.action;
+		      theMessage[UPBMSG_NETWORK_ID] = mv.networkid;
+		      theMessage[UPBMSG_DEST_ID] = mv.moduleid;
+		      theMessage[UPBMSG_SOURCE_ID] = mv.sourceid;
+			
+			break;
+			
+			
 		case 0x22: //Goto
 		case 0x23:  //Turn Dimming wall switch ON/OFF
 			theMessage[UPBMSG_CONTROL_HIGH] = theMessageSize + 1;
@@ -112,11 +155,41 @@ public class buildCmd {
 			
 			theMessage[UPBMSG_MESSAGE_ID] = mv.action;
 			theMessage[UPBMSG_BODY] = mv.level;
-			if(mv.fadeRate != DEFAULT_FADE_RATE)
+		//	if(mv.fadeRate != DEFAULT_FADE_RATE)
 				theMessage[UPBMSG_BODY + 1] =  mv.fadeRate; 
 			if(mv.channel != ALL_CHANNELS)
 				theMessage[UPBMSG_BODY + 2] = mv.channel;  
 			break;
+		case 0x25:  // Blink
+			if(mv.isDevice == false)  // Link
+			{
+			  theMessage[UPBMSG_CONTROL_HIGH] = 0x80 | (theMessageSize + 1);
+			}
+			else
+			{
+			theMessage[UPBMSG_CONTROL_HIGH] = theMessageSize + 1;
+			}
+			theMessage[UPBMSG_CONTROL_LOW] =  0x14;   
+			theMessage[UPBMSG_NETWORK_ID] = mv.networkid;
+			theMessage[UPBMSG_DEST_ID] = mv.moduleid;
+			theMessage[UPBMSG_SOURCE_ID] = mv.sourceid;;
+			
+			theMessage[UPBMSG_MESSAGE_ID] = mv.action;
+		//	theMessage[UPBMSG_BODY] = mv.level;
+//			if(mv.ate != DEFAULT_FADE_RATE)
+				theMessage[UPBMSG_BODY] =  mv.blinkRate; 
+	//		if(mv.isDevice == true)
+		//	{
+		//	if(mv.channel != ALL_CHANNELS)
+		if(mv.isDevice == true)
+		{
+			theMessage[UPBMSG_BODY + 1] = mv.channel;  
+		}
+			//	}
+			
+			break;
+			
+		
 		default:
 			break;
 		}

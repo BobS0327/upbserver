@@ -1,3 +1,19 @@
+/*
+Copyright (C) 2016  R.W. Sutnavage
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/.
+*/
 package databaseMethods;
 
 import java.sql.Connection;
@@ -22,6 +38,8 @@ public class initializeDatabase {
 	        String sMakeTable4 = "CREATE TABLE devicestatus (moduleid numeric, upddatetime text, status numeric, level numeric, faderate numeric, info text)";
 	        String sMakeTable5 = "CREATE TABLE presets (moduleid numeric, linkid numeric, channel numeric, presetdim numeric, presetfade numeric)";
 	        
+	        
+	        
 	        // create a database connection
 	        Connection conn = DriverManager.getConnection(sDbUrl);
 	        try {
@@ -34,6 +52,7 @@ public class initializeDatabase {
 	                stmt.executeUpdate( sMakeTable3 );
 	                stmt.executeUpdate( sMakeTable4 );
 	                stmt.executeUpdate( sMakeTable5 );
+	             
 	            } finally {
 	                try { stmt.close(); } catch (Exception ignore) {  }
 	            }
