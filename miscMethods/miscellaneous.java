@@ -16,7 +16,6 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package miscMethods;
 
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
