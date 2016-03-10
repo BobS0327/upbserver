@@ -7,6 +7,11 @@ to minimize the traffic on the powerline network.  UPB commands are sent to the 
 UPB server.  The database is also updated when these remote commands are received.  IOW, if a ActivateLink command is received, the
 databse is immediately updated to reflect the issuance of this command.
 
+upbServer is designed to run headless as a back end server.  Status of the server is reported once every twenty four hours via
+email text message.  Also, the app attempts to recover from any problems it encounters.  It will also post details of the 
+problem(s) to a database log table.  This table can be reviewed to determine the source of the problem.
+
+
 Two files must exist prior to starting upbserver.  The first file is the export file from Upstart and the second file is a 
 Comma Separated Values file that contains  details on various manufacturer products.  An example of the second file follows:
 
@@ -33,42 +38,43 @@ added/removed, all the needs to be done is update the products CSV file.  Rebuil
 
 There is also a config.properties file that must be updated prior to executing the application An example of the file is..
 
-*#*upbServer configuration properties  
-*#*Linux /dev/ttyUSB0  
-comm=COM4  
-*#*port for http server  
-port=8080  
-upbexpfilefullpathname=c:/temp/myUpStart.upe  
-dbname=upbserver.db  
-sourceid=255  
+*#*upbServer configuration properties
+*#*Linux /dev/ttyUSB0
+comm=COM4
+*#*port for http server
+port=8080
+upbexpfilefullpathname=c:/temp/myUpStart.upe
+dbname=upbserver.db
+sourceid=255
 *#*number of seconds delay between issuing serial write commands
-delaybetweencommands=4  
-httpcontext=/upb  
-networkid=1  
-*#*name of csv input file for product description table (products)  
-productcsvfile=c:/temp/upbserver.csv  
-*#*delay for sending web response, needed for getting response from device and sending response to client  
-webresponsedelay=6  
-*#* source email for sending emails/texts  
-fromemail=abc@wherever.com  
-*#*target email  
-toemail=cde@whatever.com  
-emailuserid=goofy@whatever.com  
-emailpassword=password  
-*#*reboot timer values  
-rebootserver=0,1,0,0,0  
+delaybetweencommands=5
+httpcontext=/upb
+networkid=1
+*#*name of csv input file for product description table (products)
+productcsvfile=c:/temp/upbserver.csv
+*#*delay for sending web response, needed for getting response from device and sending response to client
+webresponsedelay=6
+*#* source email for sending emails/texts
+fromemail=user@usermail.com
+*#*target email
+toemail=targetuser@usermail.com
+emailuserid=targetuser@usermail.com
+emailpassword=password
+*#*run diagnostic at specific hour minute (HH,MM) in 24 hour military time
+diagnosticRunTime=7,30
+*#*name of interface needed to get local ip address of computer
+*#*this is needed for RPI since RPI default interface returns 127.0.0.1
+*#*networkinterface is meaningless for Windows
+networkinterface=eth1
+*#*port used to transfer database file to client
+portusedforfiledownload=8081
 
 The *#* sign is a COMMENT.   
 The delaybetweencommands and webresponsedelay are used to fine tune the app for your installation.  These variable may have to be increased/decreased
 as required.
 
-The email variables are NOT yet implemented.  I intend to add diagnostics to the app to determine if network and/or RS-232 connectivity has been lost.  At which
-time, I'll restart the app and restest network/RS-232 connectivity to verify problem has been resolved.  I will also send a text alert to notify user of any
-issues.
-
-The rebootserver option will allow the user to restart the hardware (RPI, Windows desktop etc.) once a week at a specific time.  This is an optional variable and does NOT have 
-to be used.  I added it for anyone using this app on a Windows desktop. I've found that Windows can become somewhat unstable after running for an extended 
-period of time.  Especially, when MS sends updates to the machine.  Thus, the reason for the reboot option.  This option is NOT yet implemented.
+The diagnosticRumTime variable is used to send an email at the time determined (hh,mm in military time) with info on the health (status)
+of upbServer.  It provides total uptime as well as test results verifying that the network and serial link are functioning properly.
 
 For serial communications, I use the Java-Simple-Serial-Connector.
 
@@ -90,12 +96,10 @@ localhost:8080/upb?action=deactivatelink&linkid=3
 
 This deactivates link #3
 
-
 STATUS:  
 localhost:8080/upb?action=status&moduleid=141&blinkrate
 
 This returns current status of device # 140
-
 
 GOTO:  
 localhost:8080/upb?action=goto&moduleid=141&level=98&faderate=200

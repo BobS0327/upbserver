@@ -74,7 +74,8 @@ public class addUPERecords2DB {
 					updateDatabase.clearTables(inputDBName, "links");	
 					updateDatabase.clearTables(inputDBName, "header");	
 					updateDatabase.clearTables(inputDBName, "presets");	
-					updateDatabase.clearTables(inputDBName, "products");	
+					updateDatabase.clearTables(inputDBName, "products");
+					updateDatabase.clearTables(inputDBName, "loginfo");
 				}
 				// Rebuild the products table
 				readCSV csv = new readCSV(inputDBName, upbServer.productCSVfile);

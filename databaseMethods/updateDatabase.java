@@ -13,25 +13,95 @@ Copyright (C) 2016  R.W. Sutnavage
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/.
-*/
+ */
 package databaseMethods;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.bobs0327.buildCmd;
 import com.bobs0327.upbServer;
 
+import miscMethods.miscellaneous;
+import java.sql.PreparedStatement;
+
 public class updateDatabase
 {
+
+	public static int getTableRowCount(String dbName, String tableName) 
+	{
+		int rowCount = 0;
+		int index = 0;
+		Connection c = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
+			stmt = c.createStatement();
+
+			String sel = "SELECT * FROM " + tableName;
+			String sel1;
+			int manf, prod;
+			 rs = stmt.executeQuery(sel);
+
+			while (rs.next()) {
+				++rowCount;
+				
+			}
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch ( Exception ex ) {
+			try
+			{
+			rs.close();
+			stmt.close();
+			c.close();
+			} catch ( Exception ex1 ) {
+				
+			}
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
+		}
+
+	return rowCount;
+	
+	}
+
+	public static void insertLogRecord(String dbName, String timeStamp,String inData )
+	{
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
+			stmt = c.createStatement();
+			String values =	  "VALUES (" + "'" +  timeStamp + "'" +  "," + "'" + inData +"'" +  ");";
+			//String values =	  "VALUES (" + timeStamp + "," +  information + ");";
+			String sql = "INSERT INTO loginfo (timestamp,info) " + values;
+			stmt.executeUpdate(sql);
+			stmt.close();
+			c.commit();
+			c.close();
+		} catch ( Exception ex ) {
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+		}
+		System.out.println("Log record inserted successfully");
+	}
+
+
+
 	public static void insertDeviceRecord( String dbName, int moduleid, int manufacturer, int prodid, int fw, int channels, int numtransmit, int numrece, String room, String devname, int packet )
 	{
 		Connection c = null;
@@ -48,13 +118,14 @@ public class updateDatabase
 			stmt.close();
 			c.commit();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
+
 		}
 		System.out.println("Device record inserted successfully");
 	}
-	
+
 	public static void insertHeaderRecord( String dbName, int importVersion, int expectedDeviceCount, int expectedLinkCount, int importNetworkID, int networkPassword )
 	{
 		Connection c = null;
@@ -71,9 +142,9 @@ public class updateDatabase
 			stmt.close();
 			c.commit();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 		System.out.println("Header record inserted successfully");
 	}
@@ -94,14 +165,14 @@ public class updateDatabase
 			stmt.close();
 			c.commit();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 		System.out.println("Preset record inserted successfully");
 	}
-	
-	
+
+
 	public static void insertProductsRecord( String dbName, int manuf, int prod, String desc, String kind )
 	{
 		Connection c = null;
@@ -118,16 +189,16 @@ public class updateDatabase
 			stmt.close();
 			c.commit();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 		System.out.println("Products record inserted successfully");
 	}
-	
-	
-	
-	
+
+
+
+
 	public static void insertLinkRecord( String dbName, int linkid, String linkname)
 	{
 		Connection c = null;
@@ -144,9 +215,9 @@ public class updateDatabase
 			stmt.close();
 			c.commit();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 		System.out.println("Link Record inserted successfully");
 	}
@@ -161,14 +232,14 @@ public class updateDatabase
 			String sql = "DELETE FROM " + tableName+ ";";
 			stmt.executeUpdate(sql);
 		}
-		catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 	} 
 	public static String findDeviceRecord( String dbName, int  moduleID)
 	{
-		 JSONObject updateObj = new JSONObject();
+		JSONObject updateObj = new JSONObject();
 		Connection c = null;
 		Statement stmt = null;
 		try {
@@ -187,10 +258,10 @@ public class updateDatabase
 
 			while (rs.next()) {
 				devrecfound = true;
-				  updateObj.put("ModuleID", new Integer(moduleID));
+				updateObj.put("ModuleID", new Integer(moduleID));
 				updateObj.put("Room",rs.getString("roomname") );
-				  updateObj.put("Device",rs.getString("devname"));
-			
+				updateObj.put("Device",rs.getString("devname"));
+
 				System.out.println("Room Name = " + rs.getString("roomname"));
 				System.out.println("Device Name = " + rs.getString("devname"));
 				manf = rs.getInt("manufacturer");
@@ -202,9 +273,9 @@ public class updateDatabase
 
 				while (rs1.next()) {
 					prodrecfound = true;
-					  updateObj.put("Description",rs1.getString("proddesc"));
-					  updateObj.put("Kind",rs1.getString("kind"));
-					  
+					updateObj.put("Description",rs1.getString("proddesc"));
+					updateObj.put("Kind",rs1.getString("kind"));
+
 					System.out.println("Product Desc = " + rs1.getString("proddesc"));
 					System.out.println("Kind = " + rs1.getString("kind"));
 				}
@@ -213,22 +284,22 @@ public class updateDatabase
 			rs.close();
 			stmt.close();
 
-	ResultSet rs2 = stmt.executeQuery(sel2);
+			ResultSet rs2 = stmt.executeQuery(sel2);
 			while (rs2.next()) {
 				prodrecfound = true;
-				  updateObj.put("TimeStamp",rs2.getString("upddatetime"));
-				  updateObj.put("Status", new Integer( rs2.getInt(3)));
-				  updateObj.put("Level", new Integer( rs2.getInt(4)));
-				  
+				updateObj.put("TimeStamp",rs2.getString("upddatetime"));
+				updateObj.put("Status", new Integer( rs2.getInt(3)));
+				updateObj.put("Level", new Integer( rs2.getInt(4)));
+
 				System.out.println("TimeStamp = " + rs2.getString("upddatetime"));
 			}
 			rs2.close(); 
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
-		  final String responseBody = updateObj.toJSONString();
+		final String responseBody = updateObj.toJSONString();
 		return responseBody;
 	}
 
@@ -297,9 +368,9 @@ public class updateDatabase
 			stmt.close();
 			rs.close();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 	}
 	public static void loadDeviceIDArray( String dbName, int[]  dArray)
@@ -320,19 +391,19 @@ public class updateDatabase
 			ResultSet rs = stmt.executeQuery(sel);
 
 			while (rs.next()) {
-			dArray[index++] = rs.getInt("moduleid");
+				dArray[index++] = rs.getInt("moduleid");
 			}
 			rs.close();
 			stmt.close();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 	}
 	public static void updateDevicesFromLinkCmd( String dbName,  int linkID, Boolean bActivate)
 	{
-		 Connection c = null;
+		Connection c = null;
 		Statement stmt = null;
 		try {
 			int status = 0;
@@ -347,14 +418,14 @@ public class updateDatabase
 			int manf, prod;
 			ResultSet rs1 = stmt.executeQuery(sel1);
 			while (rs1.next()) {
-			linkName = 	rs1.getString("linkname");	
+				linkName = 	rs1.getString("linkname");	
 			}
-		//	linkName += " ON";
+			//	linkName += " ON";
 			String timeStamp = upbServer.getDateandTime();
 			ResultSet rs = stmt.executeQuery(sel);
-	
+
 			while (rs.next()) {
-				
+
 				int tempModuleID = rs.getInt("moduleid");
 				int presetDim = rs.getInt("presetdim");
 				int presetFade = rs.getInt("presetfade");
@@ -362,45 +433,43 @@ public class updateDatabase
 				System.out.println("Link ID = " + rs.getInt("linkid"));
 				System.out.println("Preset Dim = " + rs.getInt("presetdim"));
 				System.out.println("FadeRate = " + rs.getInt("presetfade"));
-					String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=?, faderate=?, info=? where moduleid=?";
-					PreparedStatement preparedStatement =
-							c.prepareStatement(sql);
-					preparedStatement.setInt  (1, tempModuleID);  //moduleid
-					preparedStatement.setString(2, timeStamp); //
-					if(bActivate == false)
-					{
-						presetDim = 0;
-						presetFade = buildCmd.DEFAULT_FADE_RATE;
-					}
-					
-					
-					if(presetDim > 0)
-						status = 1;
-					else
-						status = 0;
-					preparedStatement.setInt(3, status);
-					preparedStatement.setInt  (4, presetDim);  //level
-					preparedStatement.setInt  (5, presetFade);  //faderate
-					
-					if(bActivate == true)
-					{
-						preparedStatement.setString  (6, linkName); 
-					}
-					else
-					{
-						preparedStatement.setString  (6, ""); 
-					}
-					
-						preparedStatement.setInt  (7, tempModuleID); 
-						 preparedStatement.executeUpdate();
+				String sql = "update devicestatus set  moduleid=?, upddatetime=? , status=? , level=?, faderate=?, info=? where moduleid=?";
+				PreparedStatement preparedStatement =
+						c.prepareStatement(sql);
+				preparedStatement.setInt  (1, tempModuleID);  //moduleid
+				preparedStatement.setString(2, timeStamp); //
+				if(bActivate == false)
+				{
+					presetDim = 0;
+					presetFade = buildCmd.DEFAULT_FADE_RATE;
+				}
+				if(presetDim > 0)
+					status = 1;
+				else
+					status = 0;
+				preparedStatement.setInt(3, status);
+				preparedStatement.setInt  (4, presetDim);  //level
+				preparedStatement.setInt  (5, presetFade);  //faderate
+
+				if(bActivate == true)
+				{
+					preparedStatement.setString  (6, linkName); 
+				}
+				else
+				{
+					preparedStatement.setString  (6, ""); 
+				}
+
+				preparedStatement.setInt  (7, tempModuleID); 
+				preparedStatement.executeUpdate();
 			}
-		
+
 			rs.close();
 			stmt.close();
 			c.close();
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+		} catch ( Exception ex ) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
 		}
 	}
 }

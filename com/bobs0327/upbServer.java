@@ -13,30 +13,114 @@ Copyright (C) 2016  R.W. Sutnavage
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/.
-*/
+ */
 package com.bobs0327;
-// Activate link #3
-//87040103FF2052
 
 import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
 import jssc.SerialPortException;
+import miscMethods.checkSerialPort;
+import miscMethods.getIPAddressAndHostname;
+import miscMethods.miscellaneous;
 import miscMethods.sendMailSSL;
+import schedulerMethods.DailyIterator;
+import schedulerMethods.Scheduler;
+import schedulerMethods.SchedulerTask;
+import upbHttpServerMethods.HTTPServerFileDownload;
 import upbHttpServerMethods.HttpRequestHandler;
 import upbHttpServerMethods.UPBHttpServer;
-import java.sql.Date;
 import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Properties;
+import java.util.Date;
 import databaseMethods.addUPERecords2DB;
 import databaseMethods.updateDatabase;
+
 import java.io.*;
-import java.util.LinkedList;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+class TaskScheduler
+{
+	private final Scheduler scheduler = new Scheduler();
+	private final SimpleDateFormat dateFormat =
+			new SimpleDateFormat("dd MMM yyyy HH:mm:ss.SSS");
+	private  int hourOfDay, minute, second;
+
+	public TaskScheduler(int hourOfDay, int minute, int second) {
+		this.hourOfDay = hourOfDay;
+		this.minute = minute;
+		this.second = second;
+	}
+
+	public void start() {
+		scheduler.schedule(new SchedulerTask() {
+			public void run() {
+				executeTask();
+
+			}
+			private void executeTask() {
+				String checkSerPort = "";
+				String checkNetwork = "";
+				int rowCount = -1;
+				String ipAndHostname = getIPAddressAndHostname.getIPAddresAndHostname();
+				checkSerialPort csp = new checkSerialPort();
+				if(csp.run() == false)
+				{
+					checkSerPort = "Serial Port check FAILED!!!";
+				}
+				else
+				{
+					checkSerPort = "Serial Port check SUCCESSFUL!!!";	
+				}
+				try {
+					if(miscellaneous.getNetworkStatus("http://google.com") == true)
+					{
+						checkNetwork = "Network check SUCCESSFUL";	
+					}
+					else
+					{
+						checkNetwork = "Network check FAILED";
+					}
+				} catch (IOException ex) {
+					updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+
+				SimpleDateFormat simpleDateFormat = 
+						new SimpleDateFormat("dd/M/yyyy hh:mm:ss");
+
+				String elapsedTime = "";
+				try {
+					Date date1 = simpleDateFormat.parse(upbServer.appStartDate);
+					Date date2 = simpleDateFormat.parse(upbServer.getCurrentDateTime());
+					elapsedTime = upbServer.DateDifference(date1, date2);
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+				 rowCount = updateDatabase.getTableRowCount(upbServer.dbName, "loginfo"); 
+			//	String emailString = upbServer.getDateandTime() + "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" +elapsedTime;
+					String emailString = upbServer.getDateandTime() +  "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" + "loginfo table contains: " + rowCount +" record(s)" +   "\n\n"  + elapsedTime ;
+				 
+				 sendMailSSL sm = new sendMailSSL(upbServer.emailUserid, upbServer.emailPassword, upbServer.toEmail, upbServer.fromEmail, emailString); 
+				sm.run();                  
+
+
+			}
+		}, new DailyIterator(hourOfDay, minute, second));
+	}
+}
 
 public class upbServer extends Thread
 {
-	  public static LinkedList<String> webString = new LinkedList<String>();
+
+	public static boolean bServerStarted = false;
 	static int prevModuleId;
 	static boolean bAlreadyUpdated = false;
 	static StringBuilder sb = new StringBuilder();
@@ -62,17 +146,56 @@ public class upbServer extends Thread
 	public static String toEmail;
 	public static String emailUserid;
 	public static String emailPassword;
-	public static String[] rebootServer;
+	public static String[] diagRunTime;
+	static int diagHour;
+	static int diagMinute;
+	public static String appStartDate;
+	public static String networkInterface;
+	public static int portUsedForFileDownload = 0;
+	public static String serverIPAddress;
+	public static String configProperties = "config.properties";
+	final static long fONCE_PER_DAY = 1000*60*60*24;
+	static int rowCount = 0;
+
+
+	private final Scheduler scheduler = new Scheduler();
+	private final SimpleDateFormat dateFormat =
+			new SimpleDateFormat("dd MMM yyyy HH:mm:ss.SSS");
+	private int hourOfDay, minute, second;  
+
+	static ServerSocket Server = null;
 
 	public static void main(String[] args) 
 	{
+
+
+		//		String info = upbServer.getDateandTime().toString()+ "upbServerStarted";
+		//		updateDatabase.insertLogRecord(dbName,"xxx", info );
+		//		System.exit(0);
+		if(args.length > 0)
+		{
+			configProperties = args[0];
+			File varFile = new File(configProperties);
+			if(varFile.exists() != true)
+			{
+				System.out.println("Cannot locate" + args[0] + " defaulting to config.properties");
+				configProperties = "config.properties";	 
+			}
+			else
+			{
+				System.out.println("Using :" + args[0]);	
+			}
+		}
+		else
+		{
+			System.out.println("Using : config.properties");	
+		}
+
+		appStartDate =	getCurrentDateTime();
 		System.out.println("Initializing application");
+
 		initializeApplication();
-	
-	
-//		 sendMailSSL sm = new sendMailSSL(emailUserid, emailPassword, toEmail, fromEmail, "Testing upbserver"); 
-//		sm.run();
-//		System.exit(0);
+
 		try {
 			serialPort = new SerialPort(comm); 
 			_portNumber = port; //Arbitrary port number
@@ -80,9 +203,10 @@ public class upbServer extends Thread
 			serialPort.setParams(4800, 8, 1, 0); //Set params for UPB PIM
 			int mask = SerialPort.MASK_RXCHAR + SerialPort.MASK_CTS + SerialPort.MASK_DSR;//Prepare mask
 			serialPort.addEventListener(new SerialPortReader()); //Add SerialPortEventListener
-		} catch (Exception e) {
-			System.out.println("I/O failure: " + e.getMessage());
-			e.printStackTrace();
+		} catch (Exception ex) {
+			updateDatabase.insertLogRecord(dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			System.out.println("I/O failure: " + ex.getMessage());
+			ex.printStackTrace();
 		}
 		updateDatabase.loadDeviceIDArray( dbName, deviceIDArray);	
 		moduleVariables mvInput = new moduleVariables();
@@ -98,10 +222,6 @@ public class upbServer extends Thread
 		//		bc.buildCmd(mvInput);
 		String 	myCmd = mvInput.message.toString();
 		String dateStr = getDateandTime();
-
-		//		System.out.println(dateStr + " Sent: "+ myCmd);
-		//	sendCmd(myCmd);
-
 		System.out.println("Updating database..");
 		for(int index = 0; index <= deviceIDArray.length; index++)
 		{
@@ -122,25 +242,57 @@ public class upbServer extends Thread
 			sendCmd(myCmd);
 			try {
 				Thread.sleep(cmdDelay*1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			} catch (InterruptedException ex) {
+				updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+				ex.printStackTrace();
 			}
 		}
 		upbHttpServerMethods.UPBHttpServer upbHttpServer = new UPBHttpServer(port, httpContext,
 				new HttpRequestHandler());
-
-		// Start the server
 		upbHttpServer.start();
 
+
+		TaskScheduler ts = new TaskScheduler(diagHour, diagMinute, 0);
+		ts.start();
+
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException ex) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			ex.printStackTrace();
+		}
+		int rowCount = updateDatabase.getTableRowCount(dbName, "loginfo"); 
+		runDiagnosticsReport(true);
+
 		System.out.println("Application now running");
+		updateDatabase.insertLogRecord(dbName, upbServer.getDateandTime(),"upbServer STARTED!!!" );
+
+		try {
+			Server = new ServerSocket (8081, 10, InetAddress.getByName(serverIPAddress));
+		} catch (IOException ex) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			ex.printStackTrace();
+		}         
+		System.out.println ("TCPServer: "+ serverIPAddress + "  Waiting for client on port 8081");
+
+		while(true) {	                	   	      	
+			Socket connected = null;
+			try {
+				connected = Server.accept();
+			} catch (IOException ex) {
+				updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );				
+				ex.printStackTrace();
+			}
+			(new HTTPServerFileDownload(connected)).start();
+		}    
 	}
 
 	public static void initializeApplication()
 	{
 		try {
-			configfile = new File("config.properties").getAbsolutePath();
-			File file = new File(configfile);
-			FileInputStream fileInput = new FileInputStream(file);
+			configfile = new File(configProperties).getAbsolutePath();
+			//	File file = new File(configfile);
+			FileInputStream fileInput = new FileInputStream(configfile);
 			Properties properties = new Properties();
 			properties.load(fileInput);
 			fileInput.close();
@@ -163,15 +315,29 @@ public class upbServer extends Thread
 			toEmail = properties.getProperty("toemail");
 			emailUserid = properties.getProperty("emailuserid");
 			emailPassword = properties.getProperty("emailpassword");
-			rebootServer = properties.getProperty("rebootserver").split(",");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+			diagRunTime = properties.getProperty("diagnosticRunTime").split(",");
+			diagHour  =  Integer.parseInt(diagRunTime[0]);
+			diagMinute  =  Integer.parseInt(diagRunTime[1]);
+			networkInterface = properties.getProperty("networkinterface");
+			portIn = null;
+			portIn = properties.getProperty("portusedforfiledownload");
+			portUsedForFileDownload  =  Integer.parseInt(portIn); 
+
+		} catch (FileNotFoundException ex) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );			
+			ex.printStackTrace();
+			System.err.println("Aborting, cannot open "+ configfile);
+			System.exit(0);
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
 			System.err.println("Aborting, cannot read "+ configfile);
 			System.exit(0);
 		}
+
 		addUPERecords2DB.addUPERecords(dbName, expfilename);	
+		updateDatabase.clearTables(dbName, "loginfo");
 	}
 
 	public static class upbCommandProcessor {
@@ -201,8 +367,9 @@ public class upbServer extends Thread
 					reply = "TTT";
 					reply = "EEEE";
 				}
-			} catch(Exception e) {
-				System.out.println("input process falied: " + e.getMessage());
+			} catch(Exception ex) {
+				updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+				System.out.println("input process falied: " + ex.getMessage());
 				return "exit";
 			}
 			return reply;
@@ -232,6 +399,7 @@ public class upbServer extends Thread
 					}
 				}
 				catch (SerialPortException ex) {
+					updateDatabase.insertLogRecord(dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
 					System.out.println(ex);
 				}
 			}
@@ -259,6 +427,7 @@ public class upbServer extends Thread
 			serialPort.removeEventListener();
 			serialPort.closePort();
 		} catch (SerialPortException ex) {
+			updateDatabase.insertLogRecord(dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );			
 		}
 	}
 
@@ -291,13 +460,9 @@ public class upbServer extends Thread
 		{
 			System.out.println("PK   UPB Device ACK'd current message  ");
 		}
-
-
 		if (theMessage.toString().startsWith("PU")) {
-
 			String dateStr = getDateandTime();
-
-			System.out.println(dateStr + " Received: " + theMessage.toString());
+			System.out.println("\n" + dateStr + " Received: " + theMessage.toString());
 
 			int messageLen = theMessage.length();
 			int messageBody[] = new int[(messageLen / 2) - 2];
@@ -317,7 +482,6 @@ public class upbServer extends Thread
 					messageBody[messagePtr++] = theValue;
 					continue;
 				}
-
 				checkSum = (-checkSum & 0xff);
 				System.out.println("Checksum = " + checkSum + "  theValue =  "+theValue );		
 				if (checkSum != theValue) {
@@ -447,7 +611,8 @@ public class upbServer extends Thread
 			}
 			if(linkPacket  == false)
 			{
-				updateDatabase.updateStatusTable( upbServer.dbName  , parsedDestID ,parsedLevel, parsedFadeRate, "");
+				String timeStamp = "Last Update: " + upbServer.getDateandTime();
+				updateDatabase.updateStatusTable( upbServer.dbName  , parsedDestID ,parsedLevel, parsedFadeRate, timeStamp);
 			}
 			break;
 
@@ -465,9 +630,7 @@ public class upbServer extends Thread
 					sBlink = "BLINK ON Blink Rate is " + parsedBlinkRate ;
 				}
 				else sBlink = "";
-
 				updateDatabase.updateStatusTable( upbServer.dbName  , parsedDestID ,100, parsedFadeRate, sBlink);
-
 			}
 			else  // Link
 			{
@@ -504,9 +667,9 @@ public class upbServer extends Thread
 			serialPort.writeBytes(ctlt);
 			serialPort.writeBytes(bytebuffer);
 			serialPort.writeBytes(cr);
-		} catch (SerialPortException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (SerialPortException ex) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			ex.printStackTrace();
 		}
 		processSendCommand(inCmd);
 	}
@@ -526,5 +689,105 @@ public class upbServer extends Thread
 		// get rid or \r at end of sb
 		sb.setLength(sb.length() - 1);
 		processData(sb);
+	}
+	static public String getCurrentDateTime() {
+		Date date = Calendar.getInstance().getTime();
+		SimpleDateFormat sdf = new SimpleDateFormat("dd/M/yyyy hh:mm:ss");
+		return sdf.format(date);
+	}
+	public static String DateDifference(Date startDate, Date endDate){
+
+		//1 minute = 60 seconds
+		//1 hour = 60 x 60 = 3600
+		//1 day = 3600 x 24 = 86400
+		//milliseconds
+		String sReturn= "";
+		long different = endDate.getTime() - startDate.getTime();
+		long secondsInMilli = 1000;
+		long minutesInMilli = secondsInMilli * 60;
+		long hoursInMilli = minutesInMilli * 60;
+		long daysInMilli = hoursInMilli * 24;
+
+		long elapsedDays = different / daysInMilli;
+		different = different % daysInMilli;
+
+		long elapsedHours = different / hoursInMilli;
+		different = different % hoursInMilli;
+
+		long elapsedMinutes = different / minutesInMilli;
+		different = different % minutesInMilli;
+
+		long elapsedSeconds = different / secondsInMilli;
+		String totalUpTime = String.format("Days: %1$d    Hours: %2$d     Minutes: %3$d      Seconds: %4$d", 
+				elapsedDays, elapsedHours, elapsedMinutes, elapsedSeconds);
+		sReturn = "Start: " + startDate +  "\n" +  "Current: " + endDate + "\n\n" + "Total Uptime:" + "\n" + totalUpTime;
+		return sReturn;	
+	}	
+
+	public static void runDiagnosticsReport(Boolean bFirstTime)
+	{
+		String checkSerPort = "";
+		String checkNetwork = "";
+
+		String ipAndHostname = getIPAddressAndHostname.getIPAddresAndHostname();
+
+		checkSerialPort csp = new checkSerialPort();
+		if(csp.run() == false)
+		{
+			checkSerPort = "Serial Port check FAILED!!!";
+			// Failed, try a second time
+			checkSerialPort csp1 = new checkSerialPort();
+			if(csp1.run() == false)
+			{
+				checkSerPort = "Serial Port check FAILED!!!";	
+			}
+			else
+			{
+				checkSerPort = "Serial Port check SUCCESSFUL!!!";		
+			}
+		}
+		else
+		{
+			checkSerPort = "Serial Port check SUCCESSFUL!!!";	
+		}
+		try {
+			if(miscellaneous.getNetworkStatus("http://google.com") == true)
+			{
+				checkNetwork = "Network check SUCCESSFUL";	
+			}
+			else
+			{
+				checkNetwork = "Network check FAILED";
+			}
+		} catch (IOException ex) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			ex.printStackTrace();
+		}
+
+		SimpleDateFormat simpleDateFormat = 
+				new SimpleDateFormat("dd/M/yyyy hh:mm:ss");
+
+		String elapsedTime = "";
+		try {
+			Date date1 = simpleDateFormat.parse(upbServer.appStartDate);
+			Date date2 = simpleDateFormat.parse(upbServer.getCurrentDateTime());
+			elapsedTime = upbServer.DateDifference(date1, date2);
+		} catch (ParseException ex) {
+			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+			ex.printStackTrace();
+		}
+		String isFirstTime;
+		if(bFirstTime == true)
+		{
+			isFirstTime = "  *** upbServer has just started ***";
+		}
+		else
+		{
+			isFirstTime = "";	
+		}
+	 rowCount = updateDatabase.getTableRowCount(dbName, "loginfo"); 
+		String emailString = upbServer.getDateandTime() + isFirstTime +   "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" + "Info (Log) table contains: " + rowCount +" record(s)" +   "\n\n"  + elapsedTime ;
+		sendMailSSL sm = new sendMailSSL(upbServer.emailUserid, upbServer.emailPassword, upbServer.toEmail, upbServer.fromEmail, emailString); 
+		sm.run();                  
 	}
 }

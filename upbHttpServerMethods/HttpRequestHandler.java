@@ -25,7 +25,6 @@ import com.bobs0327.upbServer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import databaseMethods.updateDatabase;
-import java.util.LinkedList;
 
 import org.json.simple.JSONObject;
 

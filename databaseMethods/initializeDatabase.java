@@ -37,7 +37,7 @@ public class initializeDatabase {
 	        String sMakeTable3 = "CREATE TABLE products (manufacturer numeric, prodid numeric, proddesc text, kind text)";
 	        String sMakeTable4 = "CREATE TABLE devicestatus (moduleid numeric, upddatetime text, status numeric, level numeric, faderate numeric, info text)";
 	        String sMakeTable5 = "CREATE TABLE presets (moduleid numeric, linkid numeric, channel numeric, presetdim numeric, presetfade numeric)";
-	        
+	        String sMakeTable6 = "CREATE TABLE loginfo (timestamp text, info text)"; 
 	        
 	        
 	        // create a database connection
@@ -52,6 +52,7 @@ public class initializeDatabase {
 	                stmt.executeUpdate( sMakeTable3 );
 	                stmt.executeUpdate( sMakeTable4 );
 	                stmt.executeUpdate( sMakeTable5 );
+	                stmt.executeUpdate( sMakeTable6 );
 	             
 	            } finally {
 	                try { stmt.close(); } catch (Exception ignore) {  }

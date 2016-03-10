@@ -25,6 +25,8 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import com.bobs0327.upbServer;
+
 
 public class sendMailSSL {
 	
@@ -71,11 +73,8 @@ public class sendMailSSL {
 					InternetAddress.parse(to));
 			message.setSubject("upbserver message");
 			message.setText(mess);
-
 			Transport.send(message);
-
-			System.out.println("Message sent via email");
-
+			System.out.println(upbServer.getDateandTime()+ " Message sent via email");
 		} catch (MessagingException e) {
 			
 			String theOutput = e.getMessage();
