@@ -16,7 +16,6 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package miscMethods;
 
-
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
