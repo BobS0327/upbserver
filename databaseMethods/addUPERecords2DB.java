@@ -16,7 +16,6 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package databaseMethods;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
