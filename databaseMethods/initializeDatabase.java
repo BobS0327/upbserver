@@ -16,6 +16,7 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package databaseMethods;
 
+
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.DriverManager;

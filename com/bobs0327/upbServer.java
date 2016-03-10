@@ -16,6 +16,7 @@ Copyright (C) 2016  R.W. Sutnavage
  */
 package com.bobs0327;
 
+
 import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;

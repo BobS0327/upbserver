@@ -16,6 +16,7 @@ Copyright (C) 2016  R.W. Sutnavage
  */
 package miscMethods;
 
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;

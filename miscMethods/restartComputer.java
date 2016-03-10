@@ -17,6 +17,7 @@ Copyright (C) 2016  R.W. Sutnavage
 package miscMethods;
 import java.io.IOException;
 
+
 public class restartComputer {
 
 	public static void restart() throws RuntimeException, IOException {

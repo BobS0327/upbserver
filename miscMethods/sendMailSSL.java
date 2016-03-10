@@ -16,6 +16,7 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package miscMethods;
 
+
 import java.util.Properties;
 import javax.mail.Message;
 import javax.mail.MessagingException;
