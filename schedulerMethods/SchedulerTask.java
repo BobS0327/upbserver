@@ -16,7 +16,6 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package schedulerMethods;
 
-
 import java.util.TimerTask;
 
 public abstract class SchedulerTask implements Runnable {
