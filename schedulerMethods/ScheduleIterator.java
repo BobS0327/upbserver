@@ -16,7 +16,6 @@ Copyright (C) 2016  R.W. Sutnavage
 */
 package schedulerMethods;
 
-
 import java.util.Date;
 
 public interface ScheduleIterator {

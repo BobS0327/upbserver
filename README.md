@@ -49,31 +49,31 @@ There is also a config.properties file that must be updated prior to executing t
 comm=COM4
 *#*port for http server
 port=8080
-upbexpfilefullpathname=c:/temp/myUpStart.upe
-dbname=upbserver.db
-sourceid=255
-*#*number of seconds delay between issuing serial write commands
-delaybetweencommands=5
-httpcontext=/upb
-networkid=1
-*#*name of csv input file for product description table (products)
-productcsvfile=c:/temp/upbserver.csv
-*#*delay for sending web response, needed for getting response from device and sending response to client
-webresponsedelay=6
-*#* source email for sending emails/texts
-fromemail=user@usermail.com
-*#*target email
-toemail=targetuser@usermail.com
-emailuserid=targetuser@usermail.com
-emailpassword=password
-*#*run diagnostic at specific hour minute (HH,MM) in 24 hour military time
-diagnosticRunTime=7,30
-*#*name of interface needed to get local ip address of computer
-*#*this is needed for RPI since RPI default interface returns 127.0.0.1
-*#*networkinterface is meaningless for Windows
-networkinterface=eth1
-*#*port used to transfer database file to client
-portusedforfiledownload=8081
+upbexpfilefullpathname=c:/temp/myUpStart.upe   
+dbname=upbserver.db   
+sourceid=255   
+*#*number of seconds delay between issuing serial write commands   
+delaybetweencommands=5   
+httpcontext=/upb   
+networkid=1   
+*#*name of csv input file for product description table (products)   
+productcsvfile=c:/temp/upbserver.csv   
+*#*delay for sending web response, needed for getting response from device and sending response to client   
+webresponsedelay=6   
+*#* source email for sending emails/texts   
+fromemail=user@usermail.com   
+*#*target email   
+toemail=targetuser@usermail.com   
+emailuserid=targetuser@usermail.com   
+emailpassword=password   
+*#*run diagnostic at specific hour minute (HH,MM) in 24 hour military time   
+diagnosticRunTime=7,30   
+*#*name of interface needed to get local ip address of computer   
+*#*this is needed for RPI since RPI default interface returns 127.0.0.1   
+*#*networkinterface is meaningless for Windows   
+networkinterface=eth1   
+*#*port used to transfer database file to client   
+portusedforfiledownload=8081   
 
 The *#* sign is a COMMENT.   
 The delaybetweencommands and webresponsedelay are used to fine tune the app for your installation.  These variable may have to be increased/decreased
