@@ -224,8 +224,7 @@ public class HttpRequestHandler implements HttpHandler {
 		}
 		else if (Action.equalsIgnoreCase("GOTO")  )
 		{
-			System.out.println("In GOTO");
-			if(ModuleID == null && ModuleID.isEmpty())
+		if(ModuleID == null && ModuleID.isEmpty())
 			{
 			JSONObject activatelinkobj = new JSONObject();
 			activatelinkobj.put("action", "GOTO");
@@ -234,7 +233,6 @@ public class HttpRequestHandler implements HttpHandler {
 			return responseBody;
 			}
 			if(Level.equals(""))
-	//		if(Level == null)
 			{
 			JSONObject activatelinkobj = new JSONObject();
 			activatelinkobj.put("action", "GOTO");
@@ -320,6 +318,7 @@ public class HttpRequestHandler implements HttpHandler {
 			if (Action.equalsIgnoreCase("STATUS"))
 			{
 				tempModuleID = Integer.parseInt(ModuleID);
+			// If OP2 connected, execute STATUS REQUEST for device
 				responseBody =	updateDatabase.findDeviceRecord( upbServer.dbName, tempModuleID );
 			}
 			else

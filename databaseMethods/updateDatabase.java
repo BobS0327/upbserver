@@ -29,11 +29,214 @@ import com.bobs0327.buildCmd;
 import com.bobs0327.upbServer;
 
 import miscMethods.miscellaneous;
+
+
 import java.sql.PreparedStatement;
 
 public class updateDatabase
 {
+	
+	public static void pubNubSendLinkData( String dbName, String destIPAddress)
+	{
+		Connection c = null;
+		Statement stmt = null;
+		int rnum = 1;
+		
+	
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
+			stmt = c.createStatement();
+			String sel = "SELECT * FROM links;";
+			String temp = null;
+			 ResultSet rsTemp = stmt.executeQuery("SELECT * FROM links");
 
+			    rsTemp = stmt.executeQuery("SELECT COUNT(*) FROM links");
+			    // get the number of rows from the result set
+			    rsTemp.next();
+			    int rowCount = rsTemp.getInt(1);
+			
+			
+			ResultSet rs = stmt.executeQuery(sel);
+			while (rs.next()) 
+			{
+			String linkname = rs.getString("linkname");	
+			String linkid = rs.getString("linkidnum");	
+							JSONObject obj = new JSONObject();
+							
+							obj.put("source", upbServer.serverIPAddress);
+							obj.put("destination", destIPAddress);
+							obj.put("room", "");
+							obj.put("level", "");
+							obj.put("source", upbServer.serverIPAddress);
+							obj.put("destination", destIPAddress);
+							// retrieve all links = 3
+							obj.put("action", new Integer(3));
+							obj.put("recnum", new Integer(rnum++));
+							obj.put("reccount", new Integer(rowCount));
+							obj.put("jsontimestamp",  upbServer.getCurrentDateTime());
+							obj.put("deviceid", "");
+							obj.put("linkid", linkid);
+							obj.put("devicename", "");
+							obj.put("linkname", linkname);
+							obj.put("kind", "");
+							obj.put("status", new Integer(0));
+							obj.put("desc", "");
+							obj.put("info", "");
+							obj.put("timestamp", "");
+							obj.put("cmd", "");
+				upbServer.pnMethods.Publish(obj.toString());
+			}
+		
+			stmt.close();
+			c.close();
+		} catch ( Exception e ) {
+			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+			System.exit(0);
+		}
+	}
+		
+	
+	
+	
+	public static void pubNubSendTableData( String dbName, String destIPAddress)
+	{
+		int index = 0;
+		int st = 0;
+		int lev = 0;
+		Connection c = null;
+		Statement stmt = null;
+		Statement stmt1 = null;
+		Statement stmt2 = null;
+	
+		try {
+			Class.forName("org.sqlite.JDBC");
+			String conn = "jdbc:sqlite:" + dbName;
+			c = DriverManager.getConnection(conn);
+			c.setAutoCommit(false);
+			stmt = c.createStatement();
+			stmt1 = c.createStatement();
+			stmt2 = c.createStatement();
+			String sel = "SELECT * FROM devices;";
+			String sel1 = null;
+			String status = null;
+			String level = null;
+			String info = null;
+			String timeStamp = null;
+			String temp = null;
+			int manf = 0, prod = 0;
+			 ResultSet rsTemp = stmt.executeQuery("SELECT * FROM devices");
+
+			    rsTemp = stmt.executeQuery("SELECT COUNT(*) FROM devices");
+			    // get the number of rows from the result set
+			    rsTemp.next();
+			    int rowCount = rsTemp.getInt(1);
+			
+			
+			ResultSet rs = stmt.executeQuery(sel);
+			int rnum = 1;
+			String desc = null;
+			while (rs.next()) 
+			{
+				int mod = rs.getInt("moduleid");
+				String id = Integer.toString(mod);
+				String name = rs.getString("devname");	
+				String room = rs.getString("roomname");	
+				manf = rs.getInt("manufacturer");
+				prod = rs.getInt("prodid");
+				sel1 = "SELECT * FROM products WHERE manufacturer = " + manf + " AND prodid = " + prod;	
+				ResultSet	rs1 = stmt1.executeQuery(sel1);
+				while (rs1.next()) 
+				{
+					desc = rs1.getString("proddesc");	
+				}
+				rs1.close();
+				String 	sel2 = "SELECT * FROM devicestatus WHERE moduleid = " + mod; 	
+				ResultSet	rs2 = stmt2.executeQuery(sel2);
+				while (rs2.next()) 
+				{
+					timeStamp = rs2.getString("upddatetime");
+					info = rs2.getString("info");
+					lev = rs2.getInt("level");
+					if(desc.contains("Non-Dimming"))
+					{
+					//	level = "N/A";
+					 level = Integer.toString(lev);
+					}
+					else
+					{
+						level = 	Integer.toString(lev);
+					}
+					st = rs2.getInt("status");
+					if(st == 0)
+					{
+						status = "Off";
+					}
+					else
+					{
+						status = "On";
+					}
+				}
+				rs2.close();
+				if ("".equals(info))
+				{ 
+					if(st == 0)
+					{
+						temp = timeStamp +" Device turned off";
+					}		 
+					else
+					{
+						temp = timeStamp +" Device turned on";	
+					}
+					//	temp = "No Activity";	
+				}
+				else
+				{
+					temp = timeStamp +" " + info; 
+
+				}
+				JSONObject obj = new JSONObject();
+				obj.put("room", room);
+				obj.put("level", level);
+				obj.put("source", upbServer.serverIPAddress);
+				obj.put("destination", destIPAddress);
+				// retrieve all devices = 1
+				obj.put("action", new Integer(1));
+				obj.put("recnum", new Integer(rnum++));
+				obj.put("reccount", new Integer(rowCount));
+				obj.put("jsontimestamp",  upbServer.getCurrentDateTime());
+				obj.put("deviceid", id);
+				obj.put("linkid", "");
+				obj.put("devicename", name);
+				obj.put("linkname", "");
+				obj.put("kind", "");
+				obj.put("status", new Integer(st));
+				obj.put("desc", desc);
+				obj.put("info", info);
+				obj.put("timestamp", temp);
+				obj.put("cmd", "");
+				upbServer.pnMethods.Publish(obj.toString());
+				
+			//	model.addRow(new Object[]{id, name, room, desc, status, level, temp });
+			
+			}
+
+			rs.close();
+			stmt.close();
+			stmt1.close();
+			stmt2.close();
+			c.close();
+		} catch ( Exception e ) {
+			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+			System.exit(0);
+		}
+	}
+	
+	
+	
+	
 	public static int getTableRowCount(String dbName, String tableName) 
 	{
 		int rowCount = 0;
@@ -96,7 +299,7 @@ public class updateDatabase
 			c.close();
 		} catch ( Exception ex ) {
 			System.err.println( ex.getClass().getName() + ": " + ex.getMessage() );
-			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+		//	updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
 		}
 		System.out.println("Log record inserted successfully");
 	}
@@ -262,13 +465,14 @@ public class updateDatabase
 				updateObj.put("ModuleID", new Integer(moduleID));
 				updateObj.put("Room",rs.getString("roomname") );
 				updateObj.put("Device",rs.getString("devname"));
+			//	updateObj.put("Kind",rs.getString("kind"));
 
-				System.out.println("Room Name = " + rs.getString("roomname"));
-				System.out.println("Device Name = " + rs.getString("devname"));
+			//	System.out.println("Room Name = " + rs.getString("roomname"));
+		//		System.out.println("Device Name = " + rs.getString("devname"));
 				manf = rs.getInt("manufacturer");
 				prod = rs.getInt("prodid");
-				System.out.println("Manufacturer # = " + manf);
-				System.out.println("Prod ID # = " + prod);
+		//		System.out.println("Manufacturer # = " + manf);
+		//		System.out.println("Prod ID # = " + prod);
 				sel1 = "SELECT * FROM products WHERE manufacturer = " + manf + " AND prodid = " + prod;
 				ResultSet rs1 = stmt.executeQuery(sel1);
 
@@ -277,8 +481,8 @@ public class updateDatabase
 					updateObj.put("Description",rs1.getString("proddesc"));
 					updateObj.put("Kind",rs1.getString("kind"));
 
-					System.out.println("Product Desc = " + rs1.getString("proddesc"));
-					System.out.println("Kind = " + rs1.getString("kind"));
+			//		System.out.println("Product Desc = " + rs1.getString("proddesc"));
+			//		System.out.println("Kind = " + rs1.getString("kind"));
 				}
 				rs1.close(); 
 			}

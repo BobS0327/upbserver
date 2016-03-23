@@ -16,8 +16,8 @@ Copyright (C) 2016  R.W. Sutnavage
  */
 package com.bobs0327;
 
-
 import jssc.SerialPort;
+
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
 import jssc.SerialPortException;
@@ -25,6 +25,7 @@ import miscMethods.checkSerialPort;
 import miscMethods.getIPAddressAndHostname;
 import miscMethods.miscellaneous;
 import miscMethods.sendMailSSL;
+import pubNub.pubNubMethods;
 import schedulerMethods.DailyIterator;
 import schedulerMethods.Scheduler;
 import schedulerMethods.SchedulerTask;
@@ -37,7 +38,22 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Properties;
+
+import org.json.JSONException;
+import org.json.simple.JSONObject;
+
+
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
+
+
+
+import com.pubnub.api.PubnubException;
+
 import java.util.Date;
+import java.util.Map;
+
 import databaseMethods.addUPERecords2DB;
 import databaseMethods.updateDatabase;
 
@@ -105,11 +121,11 @@ class TaskScheduler
 				} catch (ParseException e) {
 					e.printStackTrace();
 				}
-				 rowCount = updateDatabase.getTableRowCount(upbServer.dbName, "loginfo"); 
-			//	String emailString = upbServer.getDateandTime() + "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" +elapsedTime;
-					String emailString = upbServer.getDateandTime() +  "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" + "loginfo table contains: " + rowCount +" record(s)" +   "\n\n"  + elapsedTime ;
-				 
-				 sendMailSSL sm = new sendMailSSL(upbServer.emailUserid, upbServer.emailPassword, upbServer.toEmail, upbServer.fromEmail, emailString); 
+				rowCount = updateDatabase.getTableRowCount(upbServer.dbName, "loginfo"); 
+				//	String emailString = upbServer.getDateandTime() + "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" +elapsedTime;
+				String emailString = upbServer.getDateandTime() +  "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" + "loginfo table contains: " + rowCount +" record(s)" +   "\n\n"  + elapsedTime ;
+
+				sendMailSSL sm = new sendMailSSL(upbServer.emailUserid, upbServer.emailPassword, upbServer.toEmail, upbServer.fromEmail, emailString); 
 				sm.run();                  
 
 
@@ -156,8 +172,8 @@ public class upbServer extends Thread
 	public static String serverIPAddress;
 	public static String configProperties = "config.properties";
 	final static long fONCE_PER_DAY = 1000*60*60*24;
-	static int rowCount = 0;
-
+	static int rowCount1 = 0;
+	public static pubNubMethods  pnMethods = null; 
 
 	private final Scheduler scheduler = new Scheduler();
 	private final SimpleDateFormat dateFormat =
@@ -167,12 +183,9 @@ public class upbServer extends Thread
 	static ServerSocket Server = null;
 
 	public static void main(String[] args) 
-	{
+	{ 
+		String ipAndHostname = getIPAddressAndHostname.getIPAddresAndHostname();
 
-
-		//		String info = upbServer.getDateandTime().toString()+ "upbServerStarted";
-		//		updateDatabase.insertLogRecord(dbName,"xxx", info );
-		//		System.exit(0);
 		if(args.length > 0)
 		{
 			configProperties = args[0];
@@ -221,33 +234,8 @@ public class upbServer extends Thread
 		//		mvInput.action = 0x20;  // Activate Link # 0x03
 
 		//		bc.buildCmd(mvInput);
-		String 	myCmd = mvInput.message.toString();
-		String dateStr = getDateandTime();
-		System.out.println("Updating database..");
-		for(int index = 0; index <= deviceIDArray.length; index++)
-		{
-			if(deviceIDArray[index] == 0)
-				break;
-			mvInput.clear();
-			mvInput.moduleid = deviceIDArray[index];
-			mvInput.sourceid = Integer.parseInt(sourceID);
-			mvInput.networkid = Integer.parseInt(networkID);;
-			mvInput.isDevice = true;
-			mvInput.action = 0x30;  // report State Command
 
-			bc.buildCmd(mvInput);
-			myCmd = mvInput.message.toString();
-			dateStr = getDateandTime();
-
-			System.out.println(dateStr + " Sent: "+ myCmd);
-			sendCmd(myCmd);
-			try {
-				Thread.sleep(cmdDelay*1000);
-			} catch (InterruptedException ex) {
-				updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
-				ex.printStackTrace();
-			}
-		}
+		updateDeviceStatus();
 		upbHttpServerMethods.UPBHttpServer upbHttpServer = new UPBHttpServer(port, httpContext,
 				new HttpRequestHandler());
 		upbHttpServer.start();
@@ -265,15 +253,17 @@ public class upbServer extends Thread
 		int rowCount = updateDatabase.getTableRowCount(dbName, "loginfo"); 
 		runDiagnosticsReport(true);
 
-		System.out.println("Application now running");
+	
 		updateDatabase.insertLogRecord(dbName, upbServer.getDateandTime(),"upbServer STARTED!!!" );
-
+	
 		try {
 			Server = new ServerSocket (8081, 10, InetAddress.getByName(serverIPAddress));
 		} catch (IOException ex) {
 			updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
 			ex.printStackTrace();
-		}         
+		}   
+		updateDatabase.pubNubSendLinkData(  upbServer.dbName, "ALL");	
+		System.out.println("Application now running");
 		System.out.println ("TCPServer: "+ serverIPAddress + "  Waiting for client on port 8081");
 
 		while(true) {	                	   	      	
@@ -339,6 +329,14 @@ public class upbServer extends Thread
 
 		addUPERecords2DB.addUPERecords(dbName, expfilename);	
 		updateDatabase.clearTables(dbName, "loginfo");
+		pnMethods = 	new pubNubMethods();
+
+		try {
+			pnMethods.Subscribe();
+		} catch (PubnubException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public static class upbCommandProcessor {
@@ -557,6 +555,7 @@ public class upbServer extends Thread
 		}
 		System.out.format("Fade Rate is %d"+ newline ,parsedFadeRate); 
 
+		System.out.println("MessageID = " + messageID);
 		// Decode the message type
 		switch (messageID) {
 		case 0x20: // Activate Link Command
@@ -575,7 +574,21 @@ public class upbServer extends Thread
 			{
 				parsedLevel = theMessage[UPBMSG_BODY];
 			}
-			updateDatabase.updateStatusTable( upbServer.dbName , parsedDestID ,parsedLevel,parsedFadeRate, "");
+			String timeStamp = upbServer.getDateandTime();
+
+			updateDatabase.updateStatusTable( upbServer.dbName , parsedDestID ,parsedLevel,parsedFadeRate, timeStamp);
+	
+			
+						
+			
+			
+			
+			
+			
+			publishUPBAction("ALL", Integer.toString(parsedDestID), 86, parsedLevel," ",timeStamp);	
+			
+			
+		//		publishUPBAction("ALL", Integer.toString(parsedDestID), 86, parsedLevel,timeStamp, "GOTO");		
 			break;
 		case 0x23: // Fade Start Command
 
@@ -612,7 +625,7 @@ public class upbServer extends Thread
 			}
 			if(linkPacket  == false)
 			{
-				String timeStamp = "Last Update: " + upbServer.getDateandTime();
+				timeStamp = upbServer.getDateandTime();
 				updateDatabase.updateStatusTable( upbServer.dbName  , parsedDestID ,parsedLevel, parsedFadeRate, timeStamp);
 			}
 			break;
@@ -639,11 +652,13 @@ public class upbServer extends Thread
 			}
 			break;
 
-		case 0x86:
+		case 0x86:  //Returns current state of device
 			parsedLevel = theMessage[6];
 			System.out.format("Level is  %d"+newline, parsedLevel  );
-
-			updateDatabase.updateStatusTable( upbServer.dbName  , sourceID ,parsedLevel, parsedFadeRate, "");
+			timeStamp = "Last Update: " + upbServer.getDateandTime();
+			updateDatabase.updateStatusTable( upbServer.dbName  , sourceID ,parsedLevel, parsedFadeRate, timeStamp);
+			
+			publishUPBAction("ALL", Integer.toString(sourceID), 86, parsedLevel," ",timeStamp);		
 			break;
 
 		default:
@@ -680,15 +695,11 @@ public class upbServer extends Thread
 		Date now = new Date(currentDateTime);
 		DateFormat formatter = DateFormat.getDateTimeInstance(); // Date and time
 		return ( formatter.format(now));
-
 	}
 	public static void processSendCommand(String input)
 	{
 		StringBuilder sb = new StringBuilder();
-		sb.append("PU");
 		sb.append(input);
-		// get rid or \r at end of sb
-		sb.setLength(sb.length() - 1);
 		processData(sb);
 	}
 	static public String getCurrentDateTime() {
@@ -786,9 +797,99 @@ public class upbServer extends Thread
 		{
 			isFirstTime = "";	
 		}
-	 rowCount = updateDatabase.getTableRowCount(dbName, "loginfo"); 
-		String emailString = upbServer.getDateandTime() + isFirstTime +   "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" + "Info (Log) table contains: " + rowCount +" record(s)" +   "\n\n"  + elapsedTime ;
+		rowCount1 = updateDatabase.getTableRowCount(dbName, "loginfo"); 
+		String emailString = upbServer.getDateandTime() + isFirstTime +   "\n\n" + ipAndHostname + "\n\n" + checkSerPort + "\n\n" + checkNetwork + "\n\n" + "Info (Log) table contains: " + rowCount1 +" record(s)" +   "\n\n"  + elapsedTime ;
 		sendMailSSL sm = new sendMailSSL(upbServer.emailUserid, upbServer.emailPassword, upbServer.toEmail, upbServer.fromEmail, emailString); 
 		sm.run();                  
 	}
+	static void updateDeviceStatus()
+	{
+		moduleVariables mvInput = new moduleVariables();
+		buildCmd bc = new buildCmd();
+
+		String 	myCmd = mvInput.message.toString();
+		String dateStr = getDateandTime();
+		System.out.println("Updating database..");
+		for(int index = 0; index <= deviceIDArray.length; index++)
+		{
+			if(deviceIDArray[index] == 0)
+				break;
+		
+			mvInput.clear();
+			mvInput.moduleid = deviceIDArray[index];
+			mvInput.sourceid = Integer.parseInt(sourceID);
+			mvInput.networkid = Integer.parseInt(networkID);;
+			mvInput.isDevice = true;
+			mvInput.action = 0x30;  // report State Command
+
+			bc.buildCmd(mvInput);
+			myCmd = mvInput.message.toString();
+			dateStr = getDateandTime();
+
+			System.out.println(dateStr + " Sent: "+ myCmd);
+			sendCmd(myCmd);
+			try {
+				Thread.sleep(cmdDelay*1000);
+			} catch (InterruptedException ex) {
+				updateDatabase.insertLogRecord(upbServer.dbName, upbServer.getDateandTime(),miscellaneous.getStackTrace(ex) );
+				ex.printStackTrace();
+			}	
+		}
+	}
+	static void publishUPBAction(String destination, String dev, int action, int level, String ts, String information)
+	{
+		String  info =  updateDatabase.findDeviceRecord( dbName, Integer.parseInt(dev));
+		JSONObject jsonObject =null;
+		
+		JSONObject json = null;
+		try {
+			json = (JSONObject) new JSONParser().parse(info);
+		} catch (org.json.simple.parser.ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(json);
+		
+		
+		
+		
+	
+		JSONObject obj = new JSONObject( );
+		obj.put("source", serverIPAddress);
+		obj.put("destination", destination);
+		// retrieve all devices = 1
+		// action:
+		// 0 command
+		// 1 retrieve all devices & device status
+		// 2  retrieve one device
+		// 3 retrieve all links
+		// 4 update device
+		obj.put("action", new Integer(action));
+		obj.put("recnum", new Integer(1));
+		obj.put("reccount", new Integer(1));
+		obj.put("jsontimestamp", getDateandTime());
+		obj.put("deviceid", dev);
+		obj.put("linkid", " ");
+		obj.put("devicename", (String) json.get("Device"));
+		obj.put("linkname", " ");
+		obj.put("kind", (String) json.get("Description"));
+		obj.put("info", "");
+		if(level > 0)
+			obj.put("status", new Integer(1));
+		else
+			obj.put("status", new Integer(0));	
+		obj.put("timestamp", ts);
+		obj.put("room", (String) json.get("Room"));
+		obj.put("level",  Integer.toString(level));
+		obj.put("recnum", new Integer(1));
+		obj.put("reccount", new Integer(1));
+		obj.put("desc", (String) json.get("Kind"));
+		obj.put("info", information);
+		obj.put("cmd",  " ");
+		try {
+			pnMethods.Publish(obj.toString());	
+		} catch (PubnubException e) {
+			e.printStackTrace();
+		}
+	}	
 }

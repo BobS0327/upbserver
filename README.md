@@ -1,12 +1,17 @@
 
 # upbserver
-Universal Powerline Bus back end server to monitor UPB traffic on the power lines and also allow executing UPB commands via a web browser
+IMPORTANT:  You must now have a hobbyist (free) PubNub account to use the upbServer and upbClient applications.  Also, note that
+upbServer and upbClient must run on separate machines.  This is because Pubnub uses the IP addresses in the source and target operatons.
+Thus, the need for two IP addresses.
+
+Universal Powerline Bus back end server to monitor UPB traffic on the power lines and also allow executing UPB commands via 
+primarily via a Pubnub enabled GUI client and secondarily from a web browser.
 
 The latest version now maintains a SQLite database of the current status (on,off, level) of all devices on the network.  This is 
-accomplished by polling all devices listed in the export file when the application is initially started to bring the database up to date. The application will thereafter passively "sniff" the powerline and  update the database based upon the packet data.  This is done 
-to minimize the traffic on the powerline network.  UPB commands are sent to the app via a web browser.  Thus, the app acts as a back end
-UPB server.  The database is also updated when these remote commands are received.  IOW, if a ActivateLink command is received, the
-databse is immediately updated to reflect the issuance of this command.
+accomplished by passively monitor all traffic on the powerline and updating the database with the current status of the device.  Initially, on start up, the serve app will poll
+all devices to get theire current status.  This is done to minimize the traffic on the powerline network.  
+The app acts as a back end UPB server.  The database is also updated when these remote commands are received.  IOW, if a Activate Link command 
+is received, the databse is immediately updated to reflect the issuance of this command.
 
 upbServer is designed to run headless as a back end server.  Status of the server is reported once every twenty four hours via
 email text message.  Also, the app attempts to recover from any problems it encounters.  It will also post details of the 
